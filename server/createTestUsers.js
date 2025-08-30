@@ -10,35 +10,47 @@ const createTestUsers = async () => {
     
     // Clear existing test users
     await User.deleteMany({ 
-      email: { $in: ['admin@test.com', 'manager@test.com', 'finance@test.com', 'employee@test.com'] }
+      email: { $in: [
+        'alice@admin.iitmandi.ac.in', 
+        'bob@audit.iitmandi.ac.in', 
+        'carol@finance.iitmandi.ac.in', 
+        'jane@faculty.iitmandi.ac.in',
+        'john@students.iitmandi.ac.in'
+      ] }
     });
     
     // Create test users
     const users = [
       {
-        name: 'Admin User',
-        email: 'admin@test.com',
+        name: 'Alice Admin',
+        email: 'alice@admin.iitmandi.ac.in',
         password: '123456',
         role: 'Admin'
       },
       {
-        name: 'Manager User',
-        email: 'manager@test.com',
+        name: 'Bob Audit',
+        email: 'bob@audit.iitmandi.ac.in',
         password: '123456',
-        role: 'Manager'
+        role: 'Audit'
       },
       {
-        name: 'Finance User',
-        email: 'finance@test.com',
+        name: 'Carol Finance',
+        email: 'carol@finance.iitmandi.ac.in',
         password: '123456',
         role: 'Finance'
       },
       {
-        name: 'Employee User',
-        email: 'employee@test.com',
+        name: 'Jane Faculty',
+        email: 'jane@faculty.iitmandi.ac.in',
         password: '123456',
-        role: 'Employee',
-        managerEmail: 'manager@test.com'
+        role: 'Faculty'
+      },
+      {
+        name: 'John Student',
+        email: 'john@students.iitmandi.ac.in',
+        password: '123456',
+        role: 'Student',
+        facultyEmail: 'jane@faculty.iitmandi.ac.in'
       }
     ];
     

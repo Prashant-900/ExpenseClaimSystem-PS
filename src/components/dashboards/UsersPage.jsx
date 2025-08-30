@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import API from '../../api/axios';
 import { ROLES } from '../../utils/roles';
+import { useAuthStore } from '../../auth/authStore';
 
 const UsersPage = () => {
+  const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -13,9 +15,10 @@ const UsersPage = () => {
   const fetchUsers = async () => {
     try {
       const { data } = await API.get('/admin/users');
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -41,9 +44,14 @@ const UsersPage = () => {
         <p className="text-gray-600">View and manage user roles</p>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {users.map((user) => (
+      {users.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-gray-500">No users found</p>
+        </div>
+      ) : (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <ul className="divide-y divide-gray-200">
+            {users.map((user) => (
             <li key={user._id} className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -62,7 +70,10 @@ const UsersPage = () => {
                   <select
                     value={user.role}
                     onChange={(e) => updateUserRole(user._id, e.target.value)}
-                    className="text-sm border border-gray-300 rounded px-2 py-1"
+                    disabled={user.email === currentUser?.email}
+                    className={`text-sm border border-gray-300 rounded px-2 py-1 ${
+                      user.email === currentUser?.email ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                   >
                     {Object.values(ROLES).map((role) => (
                       <option key={role} value={role}>{role}</option>
@@ -74,6 +85,7 @@ const UsersPage = () => {
           ))}
         </ul>
       </div>
+    )}
     </div>
   );
 };

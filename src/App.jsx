@@ -6,6 +6,10 @@ import LoginPage from './pages/LoginPage';
 import Register from './components/Auth/Register';
 import AuthSuccessPage from './pages/AuthSuccessPage';
 import DashboardPage from './pages/DashboardPage';
+import EditRequestPage from './pages/EditRequestPage';
+import SubmitRequestPage from './pages/SubmitRequestPage';
+
+
 import { ROLES } from './utils/roles';
 
 function App() {
@@ -47,8 +51,8 @@ function App() {
           <Route 
             path="/submit" 
             element={
-              <ProtectedRoute requiredRoles={[ROLES.EMPLOYEE]}>
-                <DashboardPage />
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <SubmitRequestPage />
               </ProtectedRoute>
             } 
           />
@@ -74,7 +78,7 @@ function App() {
           <Route 
             path="/pending" 
             element={
-              <ProtectedRoute requiredRoles={[ROLES.MANAGER]}>
+              <ProtectedRoute requiredRoles={[ROLES.FACULTY]}>
                 <DashboardPage />
               </ProtectedRoute>
             } 
@@ -83,7 +87,25 @@ function App() {
           <Route 
             path="/reviewed" 
             element={
-              <ProtectedRoute requiredRoles={[ROLES.MANAGER]}>
+              <ProtectedRoute requiredRoles={[ROLES.FACULTY]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/audit" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.AUDIT]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/audit-all" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.AUDIT]}>
                 <DashboardPage />
               </ProtectedRoute>
             } 
@@ -106,6 +128,26 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          <Route 
+            path="/edit-request/:id" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <EditRequestPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/faculty-submissions" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.FACULTY]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+
           
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>

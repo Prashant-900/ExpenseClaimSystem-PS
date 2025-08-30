@@ -50,8 +50,8 @@ const ManagerPendingPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Pending Requests</h1>
-        <p className="text-gray-600">Review and approve employee requests</p>
+        <h1 className="text-2xl font-bold text-gray-900">Student Pending Requests</h1>
+        <p className="text-gray-600">Student requests awaiting your approval</p>
       </div>
 
       {requests.length === 0 ? (
@@ -65,7 +65,7 @@ const ManagerPendingPage = () => {
               key={request._id}
               request={request}
               onAction={handleAction}
-              userRole="Manager"
+              userRole="Faculty"
             />
           ))}
         </div>
@@ -75,12 +75,13 @@ const ManagerPendingPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">
-              {actionModal.action === 'approve' ? 'Approve' : 'Reject'} Request
+              {actionModal.action === 'approve' ? 'Approve' : 
+               actionModal.action === 'reject' ? 'Reject' : 'Send Back'} Request
             </h3>
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Remarks {actionModal.action === 'reject' ? '(Required)' : '(Optional)'}
+                Remarks {(actionModal.action === 'reject' || actionModal.action === 'sendback') ? '(Required)' : '(Optional)'}
               </label>
               <textarea
                 rows={3}
@@ -94,14 +95,15 @@ const ManagerPendingPage = () => {
             <div className="flex gap-3">
               <button
                 onClick={confirmAction}
-                disabled={actionModal.action === 'reject' && !remarks.trim()}
+                disabled={(actionModal.action === 'reject' || actionModal.action === 'sendback') && !remarks.trim()}
                 className={`px-4 py-2 rounded text-white ${
-                  actionModal.action === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                  actionModal.action === 'approve' ? 'bg-green-600 hover:bg-green-700' :
+                  actionModal.action === 'sendback' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                  'bg-red-600 hover:bg-red-700'
                 } disabled:opacity-50`}
               >
-                Confirm {actionModal.action === 'approve' ? 'Approval' : 'Rejection'}
+                Confirm {actionModal.action === 'approve' ? 'Approval' : 
+                        actionModal.action === 'sendback' ? 'Send Back' : 'Rejection'}
               </button>
               <button
                 onClick={() => setActionModal(null)}

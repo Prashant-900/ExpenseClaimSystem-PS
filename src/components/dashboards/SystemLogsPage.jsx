@@ -12,10 +12,11 @@ const SystemLogsPage = () => {
 
   const fetchLogs = async () => {
     try {
-      const { data } = await API.get('/admin/logs');
-      setLogs(data);
+      const { data } = await API.get('/reimbursements');
+      setLogs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch logs:', error);
+      setLogs([]);
     } finally {
       setIsLoading(false);
     }
@@ -32,21 +33,45 @@ const SystemLogsPage = () => {
         <p className="text-gray-600">View all reimbursement requests and their status</p>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {logs.map((log) => (
+      {logs.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-gray-500">No logs found</p>
+        </div>
+      ) : (
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <ul className="divide-y divide-gray-200">
+            {logs.map((log) => (
             <li key={log._id} className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    ${log.amount} - {log.description}
+                    ${log.amount} - {log.title || log.description}
                   </p>
                   <p className="text-sm text-gray-500">
-                    Employee: {log.employeeId?.name} | Category: {log.category}
+                    Employee: {log.employeeId?.name || log.submittedBy?.name} | Type: {log.expenseType || log.category}
                   </p>
-                  {(log.managerRemarks || log.financeRemarks) && (
+                  
+                  {log.images && log.images.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600 mb-1">Receipt Images:</p>
+                      <div className="flex gap-1 flex-wrap">
+                        {log.images.map((image, index) => (
+                          <img
+                            key={index}
+                            src={`http://localhost:5000/api/images/${image}`}
+                            alt={`Receipt ${index + 1}`}
+                            className="w-12 h-12 object-cover rounded border cursor-pointer hover:opacity-75"
+                            onClick={() => window.open(`http://localhost:5000/api/images/${image}`, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(log.facultyRemarks || log.auditRemarks || log.financeRemarks) && (
                     <p className="text-xs text-gray-400 mt-1">
-                      {log.managerRemarks && `Manager: ${log.managerRemarks}`}
+                      {log.facultyRemarks && `Faculty: ${log.facultyRemarks}`}
+                      {log.auditRemarks && ` | Audit: ${log.auditRemarks}`}
                       {log.financeRemarks && ` | Finance: ${log.financeRemarks}`}
                     </p>
                   )}
@@ -62,6 +87,7 @@ const SystemLogsPage = () => {
           ))}
         </ul>
       </div>
+    )}
     </div>
   );
 };

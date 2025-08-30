@@ -40,11 +40,24 @@ const EmployeeDashboard = () => {
       ) : (
         <div className="grid gap-6">
           {requests.map((request) => (
-            <RequestCard
-              key={request._id}
-              request={request}
-              userRole="Employee"
-            />
+            <div key={request._id}>
+              <RequestCard
+                request={request}
+                userRole="Employee"
+                showActions={false}
+              />
+              {(request.status === 'Sent Back - Manager' || request.status === 'Sent Back - Finance') && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm text-yellow-800 mb-2">This request needs to be updated and resubmitted.</p>
+                  <button
+                    onClick={() => window.location.href = `/edit-request/${request._id}`}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Edit & Resubmit
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

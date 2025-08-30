@@ -7,6 +7,7 @@ import passport from './config/passport.js';
 import authRoutes from './routes/auth.js';
 import reimbursementRoutes from './routes/reimbursements.js';
 import adminRoutes from './routes/admin.js';
+import imageRoutes from './routes/images.js';
 import { errorHandler } from './utils/errorHandler.js';
 
 dotenv.config();
@@ -30,6 +31,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/auth', authRoutes);
 app.use('/api/reimbursements', reimbursementRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/images', imageRoutes);
 
 app.use(errorHandler);
 

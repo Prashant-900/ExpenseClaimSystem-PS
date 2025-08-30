@@ -1,7 +1,12 @@
 import { useAuthStore } from '../auth/authStore';
-import Sidebar from '../components/Layout/Sidebar';
-import Navbar from '../components/Layout/Navbar';
+import Layout from '../components/Layout/Layout';
+import StudentDashboard from '../components/dashboards/StudentDashboard';
 import EmployeeDashboard from '../components/dashboards/EmployeeDashboard';
+import FacultyDashboard from '../components/dashboards/FacultyDashboard';
+import FacultySubmissionsPage from '../components/dashboards/FacultySubmissionsPage';
+
+import AuditDashboard from '../components/dashboards/AuditDashboard';
+import AuditAllRequestsPage from '../components/dashboards/AuditAllRequestsPage';
 import ManagerDashboard from '../components/dashboards/ManagerDashboard';
 import ManagerPendingPage from '../components/dashboards/ManagerPendingPage';
 import ManagerReviewedPage from '../components/dashboards/ManagerReviewedPage';
@@ -19,18 +24,33 @@ const DashboardPage = () => {
   const location = useLocation();
 
   const renderContent = () => {
-    // Employee routes
+    // Student routes
     if (location.pathname === '/submit') {
       return <ReimbursementForm onSuccess={() => window.location.href = '/dashboard'} />;
     }
 
-    // Manager routes
+    // Faculty routes
     if (location.pathname === '/pending') {
       return <ManagerPendingPage />;
     }
     if (location.pathname === '/reviewed') {
       return <ManagerReviewedPage />;
     }
+    
+    // Audit routes
+    if (location.pathname === '/audit') {
+      return <ManagerDashboard />;
+    }
+    if (location.pathname === '/audit-all') {
+      return <AuditAllRequestsPage />;
+    }
+    
+    // Faculty submissions route
+    if (location.pathname === '/faculty-submissions') {
+      return <FacultySubmissionsPage />;
+    }
+    
+
 
     // Finance routes
     if (location.pathname === '/approvals') {
@@ -50,10 +70,12 @@ const DashboardPage = () => {
 
     // Dashboard routes
     switch (user?.role) {
-      case 'Employee':
-        return <EmployeeDashboard />;
-      case 'Manager':
-        return <ManagerDashboard />;
+      case 'Student':
+        return <StudentDashboard />;
+      case 'Faculty':
+        return <FacultyDashboard />;
+      case 'Audit':
+        return <AuditDashboard />;
       case 'Finance':
         return <FinanceDashboard />;
       case 'Admin':
@@ -64,15 +86,9 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-          {renderContent()}
-        </main>
-      </div>
-    </div>
+    <Layout>
+      {renderContent()}
+    </Layout>
   );
 };
 

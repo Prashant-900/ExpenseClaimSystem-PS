@@ -12,9 +12,9 @@ const ManagerReviewedPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
-      // Filter for reviewed requests (not pending)
-      const reviewed = data.filter(r => r.status !== 'Pending - Manager');
+      const { data } = await API.get('/reimbursements/student-requests');
+      // Filter for reviewed student requests (not pending)
+      const reviewed = data.filter(r => r.status !== 'Pending - Faculty');
       setRequests(reviewed);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
@@ -30,8 +30,8 @@ const ManagerReviewedPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reviewed Requests</h1>
-        <p className="text-gray-600">All requests you have reviewed</p>
+        <h1 className="text-2xl font-bold text-gray-900">Student Reviewed Requests</h1>
+        <p className="text-gray-600">All student requests you have handled</p>
       </div>
 
       {requests.length === 0 ? (
@@ -44,7 +44,7 @@ const ManagerReviewedPage = () => {
             <RequestCard
               key={request._id}
               request={request}
-              userRole="Manager"
+              userRole="Faculty"
               showActions={false}
             />
           ))}

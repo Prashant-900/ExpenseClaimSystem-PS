@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import RequestCard from '../shared/RequestCard';
 import API from '../../api/axios';
 
-const FinanceApprovalsPage = () => {
+const FacultyPendingPage = () => {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionModal, setActionModal] = useState(null);
@@ -14,10 +14,8 @@ const FinanceApprovalsPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
-      // Filter for only pending finance approval requests
-      const pendingRequests = data.filter(r => r.status === 'Approved - Finance');
-      setRequests(pendingRequests);
+      const { data } = await API.get('/reimbursements?pending=true');
+      setRequests(data);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
@@ -52,13 +50,13 @@ const FinanceApprovalsPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Final Approvals</h1>
-        <p className="text-gray-600">Manager-approved requests awaiting final approval</p>
+        <h1 className="text-2xl font-bold text-gray-900">Pending Faculty Approval</h1>
+        <p className="text-gray-600">Student requests awaiting your approval</p>
       </div>
 
       {requests.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">No requests pending finance approval.</p>
+          <p className="text-gray-500">No requests pending faculty approval.</p>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -67,7 +65,7 @@ const FinanceApprovalsPage = () => {
               key={request._id}
               request={request}
               onAction={handleAction}
-              userRole="Finance"
+              userRole="Faculty"
             />
           ))}
         </div>
@@ -83,7 +81,7 @@ const FinanceApprovalsPage = () => {
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Finance Remarks {(actionModal.action === 'reject' || actionModal.action === 'sendback') ? '(Required)' : '(Optional)'}
+                Faculty Remarks {(actionModal.action === 'reject' || actionModal.action === 'sendback') ? '(Required)' : '(Optional)'}
               </label>
               <textarea
                 rows={3}
@@ -121,4 +119,4 @@ const FinanceApprovalsPage = () => {
   );
 };
 
-export default FinanceApprovalsPage;
+export default FacultyPendingPage;

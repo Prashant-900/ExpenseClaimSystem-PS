@@ -45,7 +45,9 @@ export const useAuthStore = create((set, get) => ({
       const { data } = await API.get('/auth/me');
       set({ user: data });
     } catch (error) {
-      get().logout();
+      if (error.response?.status === 401) {
+        get().logout();
+      }
     }
   },
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
-import { useAuthStore } from '../../auth/authStore';
 
-const ReimbursementForm = ({ onSuccess }) => {
-  const { user } = useAuthStore();
+const EditReimbursementForm = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '',
     expenseType: '',
@@ -11,7 +12,6 @@ const ReimbursementForm = ({ onSuccess }) => {
     amount: '',
     description: '',
     receipt: '',
-    facultyEmail: '',
     // Travel fields
     origin: '',
     destination: '',
@@ -39,12 +39,17 @@ const ReimbursementForm = ({ onSuccess }) => {
     customNotes: ''
   });
   const [images, setImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const expenseTypes = ['Travel', 'Meal', 'Accommodation', 'Office Supplies', 'Misc'];
   const travelModes = ['Flight', 'Train', 'Taxi', 'Personal Car', 'Bus', 'Other'];
   const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+
+  useEffect(() => {
+    fetchRequest();
+  }, [id]);
 
   useEffect(() => {
     return () => {
@@ -55,6 +60,53 @@ const ReimbursementForm = ({ onSuccess }) => {
       });
     };
   }, [images]);
+
+  const fetchRequest = async () => {
+    try {
+      const { data } = await API.get('/reimbursements');
+      const request = data.find(r => r._id === id);
+      if (request) {
+        setFormData({
+          title: request.title || '',
+          expenseType: request.expenseType || '',
+          expenseDate: request.expenseDate ? request.expenseDate.split('T')[0] : '',
+          amount: request.amount || '',
+          description: request.description || '',
+          receipt: request.receipt || '',
+          // Travel fields
+          origin: request.origin || '',
+          destination: request.destination || '',
+          travelMode: request.travelMode || '',
+          distance: request.distance || '',
+          startDate: request.startDate ? request.startDate.split('T')[0] : '',
+          endDate: request.endDate ? request.endDate.split('T')[0] : '',
+          // Meal fields
+          restaurantName: request.restaurantName || '',
+          mealType: request.mealType || '',
+          attendees: request.attendees || '',
+          perPersonCost: request.perPersonCost || '',
+          // Accommodation fields
+          hotelName: request.hotelName || '',
+          location: request.location || '',
+          checkinDate: request.checkinDate ? request.checkinDate.split('T')[0] : '',
+          checkoutDate: request.checkoutDate ? request.checkoutDate.split('T')[0] : '',
+          nightsStayed: request.nightsStayed || '',
+          // Office Supplies fields
+          itemName: request.itemName || '',
+          quantity: request.quantity || '',
+          vendorName: request.vendorName || '',
+          invoiceNumber: request.invoiceNumber || '',
+          // Misc fields
+          customNotes: request.customNotes || ''
+        });
+        setExistingImages(request.images || []);
+      } else {
+        setError('Request not found');
+      }
+    } catch (error) {
+      setError('Failed to fetch request details');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,17 +121,19 @@ const ReimbursementForm = ({ onSuccess }) => {
         }
       });
       
+      formDataToSend.append('existingImages', JSON.stringify(existingImages));
+      
       images.forEach(image => {
         formDataToSend.append('images', image);
       });
 
-      await API.post('/reimbursements', formDataToSend, {
+      await API.put(`/reimbursements/${id}`, formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      onSuccess();
+      navigate('/dashboard');
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to submit request');
+      setError(error.response?.data?.message || 'Failed to update request');
     } finally {
       setIsLoading(false);
     }
@@ -326,8 +380,8 @@ const ReimbursementForm = ({ onSuccess }) => {
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Request</h1>
-        <p className="mt-1 text-gray-600">Create a new reimbursement request</p>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Request</h1>
+        <p className="mt-1 text-gray-600">Update your reimbursement request details</p>
       </div>
       
       <div className="max-w-4xl">
@@ -341,12 +395,11 @@ const ReimbursementForm = ({ onSuccess }) => {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Title *
+            Title
           </label>
           <input
             type="text"
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             placeholder="Brief title for your reimbursement request"
@@ -356,11 +409,10 @@ const ReimbursementForm = ({ onSuccess }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expense Type *
+              Expense Type
             </label>
             <select
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.expenseType}
               onChange={(e) => setFormData({ ...formData, expenseType: e.target.value })}
             >
@@ -372,12 +424,11 @@ const ReimbursementForm = ({ onSuccess }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expense Date *
+              Expense Date
             </label>
             <input
               type="date"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.expenseDate}
               onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
             />
@@ -386,13 +437,12 @@ const ReimbursementForm = ({ onSuccess }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount ($) *
+            Amount ($)
           </label>
           <input
             type="number"
             step="0.01"
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
           />
@@ -402,12 +452,11 @@ const ReimbursementForm = ({ onSuccess }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description / Notes *
+            Description / Notes
           </label>
           <textarea
-            required
             rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
@@ -425,9 +474,39 @@ const ReimbursementForm = ({ onSuccess }) => {
           />
         </div>
 
+        {existingImages.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Current Images
+            </label>
+            <div className="flex gap-2 flex-wrap mb-3">
+              {existingImages.map((image, index) => (
+                <div key={`existing-${image}-${index}`} className="relative">
+                  <img
+                    src={`http://localhost:5000/api/images/${image}`}
+                    alt={`Current ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newExistingImages = [...existingImages];
+                      newExistingImages.splice(index, 1);
+                      setExistingImages(newExistingImages);
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Upload Receipt Images (optional)
+            Add New Images (Optional)
           </label>
           <input
             type="file"
@@ -439,26 +518,22 @@ const ReimbursementForm = ({ onSuccess }) => {
           {images.length > 0 && (
             <div className="mt-2">
               <p className="text-sm text-gray-500 mb-2">
-                {images.length} image(s) selected
+                {images.length} new image(s) selected
               </p>
               <div className="flex gap-2 flex-wrap">
                 {images.map((image, index) => (
-                  <div key={index} className="relative">
+                  <div key={`new-${image.name}-${index}`} className="relative">
                     <img
                       src={URL.createObjectURL(image)}
-                      alt={`Preview ${index + 1}`}
+                      alt={`New ${index + 1}`}
                       className="w-20 h-20 object-cover rounded border"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        const newImages = images.filter((_, i) => i !== index);
+                        const newImages = [...images];
+                        newImages.splice(index, 1);
                         setImages(newImages);
-                        // Clear file input if no images left
-                        if (newImages.length === 0) {
-                          const fileInput = document.querySelector('input[type="file"]');
-                          if (fileInput) fileInput.value = '';
-                        }
                       }}
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs hover:bg-red-600"
                     >
@@ -471,29 +546,23 @@ const ReimbursementForm = ({ onSuccess }) => {
           )}
         </div>
 
-        {user?.role === 'Student' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Faculty Email *
-            </label>
-            <input
-              type="email"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.facultyEmail}
-              onChange={(e) => setFormData({ ...formData, facultyEmail: e.target.value })}
-            />
-          </div>
-        )}
-
           <div className="pt-6 border-t border-gray-200">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-6 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? 'Submitting...' : 'Submit Request'}
-            </button>
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 py-3 px-6 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? 'Updating...' : 'Update & Resubmit'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
             </div>
           </form>
         </div>
@@ -502,4 +571,4 @@ const ReimbursementForm = ({ onSuccess }) => {
   );
 };
 
-export default ReimbursementForm;
+export default EditReimbursementForm;

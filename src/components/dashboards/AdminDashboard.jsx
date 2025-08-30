@@ -15,17 +15,21 @@ const AdminDashboard = () => {
     try {
       const [usersRes, logsRes] = await Promise.all([
         API.get('/admin/users'),
-        API.get('/admin/logs')
+        API.get('/reimbursements')
       ]);
       
-      const totalUsers = usersRes.data.length;
-      const totalRequests = logsRes.data.length;
-      const pendingRequests = logsRes.data.filter(r => r.status.includes('Pending')).length;
-      const completedRequests = logsRes.data.filter(r => r.status === 'Completed').length;
+      const users = Array.isArray(usersRes.data) ? usersRes.data : [];
+      const logs = Array.isArray(logsRes.data) ? logsRes.data : [];
+      
+      const totalUsers = users.length;
+      const totalRequests = logs.length;
+      const pendingRequests = logs.filter(r => r.status && r.status.includes('Pending')).length;
+      const completedRequests = logs.filter(r => r.status === 'Completed').length;
       
       setStats({ totalUsers, totalRequests, pendingRequests, completedRequests });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      setStats({ totalUsers: 0, totalRequests: 0, pendingRequests: 0, completedRequests: 0 });
     } finally {
       setIsLoading(false);
     }

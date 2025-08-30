@@ -1,6 +1,6 @@
 const GoogleAuth = () => {
   const handleGoogleLogin = () => {
-    window.location.href = 'https://kjx5f691-5000.inc1.devtunnels.ms/api/auth/google';
+    window.location.href = 'http://localhost:5000/api/auth/google';
   };
 
   return (
