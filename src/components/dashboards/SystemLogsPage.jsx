@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import API from '../../api/axios';
 import StatusBadge from '../shared/StatusBadge';
+import SearchAndFilter from '../shared/SearchAndFilter';
 
 const SystemLogsPage = () => {
   const [logs, setLogs] = useState([]);
+  const [filteredLogs, setFilteredLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -13,13 +15,76 @@ const SystemLogsPage = () => {
   const fetchLogs = async () => {
     try {
       const { data } = await API.get('/reimbursements');
-      setLogs(Array.isArray(data) ? data : []);
+      const logsData = Array.isArray(data) ? data : [];
+      setLogs(logsData);
+      setFilteredLogs(logsData);
     } catch (error) {
       console.error('Failed to fetch logs:', error);
       setLogs([]);
+      setFilteredLogs([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setFilteredLogs(logs);
+      return;
+    }
+    
+    const filtered = logs.filter(log => 
+      log.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.amount?.toString().includes(searchTerm) ||
+      (log.studentId?.name || log.facultySubmitterId?.name)?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredLogs(filtered);
+  };
+
+  const handleFilter = (filters) => {
+    let filtered = [...logs];
+    
+    if (filters.expenseType) {
+      filtered = filtered.filter(log => log.expenseType === filters.expenseType);
+    }
+    
+    if (filters.status) {
+      filtered = filtered.filter(log => log.status === filters.status);
+    }
+    
+    if (filters.dateRange) {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          filterDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+      
+      filtered = filtered.filter(log => new Date(log.createdAt) >= filterDate);
+    }
+    
+    if (filters.amountRange) {
+      const [min, max] = filters.amountRange.split('-').map(v => v.replace('+', '').replace('$', ''));
+      filtered = filtered.filter(log => {
+        const amount = log.amount;
+        if (filters.amountRange === '1000+') return amount >= 1000;
+        return amount >= parseInt(min) && amount <= parseInt(max);
+      });
+    }
+    
+    setFilteredLogs(filtered);
   };
 
   if (isLoading) {
@@ -33,23 +98,45 @@ const SystemLogsPage = () => {
         <p className="text-gray-600">View all reimbursement requests and their status</p>
       </div>
 
-      {logs.length === 0 ? (
+      <SearchAndFilter 
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        showFilters={{
+          expenseType: true,
+          status: true,
+          dateRange: true,
+          amountRange: true
+        }}
+      />
+
+      {filteredLogs.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow text-center">
           <p className="text-gray-500">No logs found</p>
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+            <p className="text-sm text-gray-700">Showing {filteredLogs.length} of {logs.length} requests</p>
+          </div>
           <ul className="divide-y divide-gray-200">
-            {logs.map((log) => (
+            {filteredLogs.map((log) => (
             <li key={log._id} className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     ${log.amount} - {log.title || log.description}
                   </p>
-                  <p className="text-sm text-gray-500">
-                    Employee: {log.employeeId?.name || log.submittedBy?.name} | Type: {log.expenseType || log.category}
-                  </p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    {(log.studentId?.profileImage || log.facultySubmitterId?.profileImage) && (
+                      <img 
+                        src={`http://localhost:5000/api/images/${log.studentId?.profileImage || log.facultySubmitterId?.profileImage}`} 
+                        alt="Profile" 
+                        className="w-6 h-6 rounded-full object-cover cursor-pointer hover:opacity-75"
+                        onClick={() => window.open(`/profile/${log.studentId?._id || log.facultySubmitterId?._id}`, '_blank')}
+                      />
+                    )}
+                    <span>Submitted by: {log.studentId?.name || log.facultySubmitterId?.name} | Type: {log.expenseType}</span>
+                  </div>
                   
                   {log.images && log.images.length > 0 && (
                     <div className="mt-2">

@@ -1,5 +1,6 @@
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import ChatBot from '../chatbot/ChatBot';
 
 const Layout = ({ children }) => {
   return (
@@ -11,6 +12,7 @@ const Layout = ({ children }) => {
           {children}
         </main>
       </div>
+      <ChatBot />
     </div>
   );
 };

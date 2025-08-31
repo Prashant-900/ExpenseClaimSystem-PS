@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import RequestCard from '../shared/RequestCard';
+import SearchAndFilter from '../shared/SearchAndFilter';
 import API from '../../api/axios';
 
 const ManagerPendingPage = () => {
   const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionModal, setActionModal] = useState(null);
   const [remarks, setRemarks] = useState('');
@@ -16,11 +18,46 @@ const ManagerPendingPage = () => {
     try {
       const { data } = await API.get('/reimbursements?pending=true');
       setRequests(data);
+      setFilteredRequests(data);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setFilteredRequests(requests);
+      return;
+    }
+    
+    const filtered = requests.filter(request => 
+      request.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.amount?.toString().includes(searchTerm) ||
+      request.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredRequests(filtered);
+  };
+
+  const handleFilter = (filters) => {
+    let filtered = [...requests];
+    
+    if (filters.expenseType) {
+      filtered = filtered.filter(request => request.expenseType === filters.expenseType);
+    }
+    
+    if (filters.amountRange) {
+      const [min, max] = filters.amountRange.split('-').map(v => v.replace('+', '').replace('$', ''));
+      filtered = filtered.filter(request => {
+        const amount = request.amount;
+        if (filters.amountRange === '1000+') return amount >= 1000;
+        return amount >= parseInt(min) && amount <= parseInt(max);
+      });
+    }
+    
+    setFilteredRequests(filtered);
   };
 
   const handleAction = (requestId, action) => {
@@ -54,13 +91,26 @@ const ManagerPendingPage = () => {
         <p className="text-gray-600">Student requests awaiting your approval</p>
       </div>
 
-      {requests.length === 0 ? (
+      <SearchAndFilter 
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        showFilters={{
+          expenseType: true,
+          amountRange: true
+        }}
+      />
+
+      {filteredRequests.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No pending requests for approval.</p>
         </div>
       ) : (
-        <div className="grid gap-6">
-          {requests.map((request) => (
+        <div>
+          <div className="mb-4 text-sm text-gray-600">
+            Showing {filteredRequests.length} of {requests.length} pending requests
+          </div>
+          <div className="grid gap-6">
+            {filteredRequests.map((request) => (
             <RequestCard
               key={request._id}
               request={request}
@@ -68,6 +118,7 @@ const ManagerPendingPage = () => {
               userRole="Faculty"
             />
           ))}
+          </div>
         </div>
       )}
 

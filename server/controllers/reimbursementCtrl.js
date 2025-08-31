@@ -3,6 +3,30 @@ import User from '../models/User.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
 import { uploadToMinio } from '../middleware/upload.js';
 
+const getProfileImageUrl = async (userId) => {
+  try {
+    const { Client } = await import('minio');
+    const minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: false,
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY
+    });
+    
+    const objectPath = `profiles/${userId}/profile.jpg`;
+    
+    try {
+      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
+      return `http://localhost:5000/api/images/${objectPath}`;
+    } catch (error) {
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+};
+
 export const createReimbursement = async (req, res) => {
   try {
     const { 
@@ -133,6 +157,22 @@ export const getReimbursements = async (req, res) => {
       .populate('auditId', 'name email')
       .sort({ createdAt: -1 });
     
+    // Add profile images for populated users
+    for (const reimbursement of reimbursements) {
+      if (reimbursement.studentId) {
+        reimbursement.studentId.profileImage = await getProfileImageUrl(reimbursement.studentId._id);
+      }
+      if (reimbursement.facultySubmitterId) {
+        reimbursement.facultySubmitterId.profileImage = await getProfileImageUrl(reimbursement.facultySubmitterId._id);
+      }
+      if (reimbursement.facultyId) {
+        reimbursement.facultyId.profileImage = await getProfileImageUrl(reimbursement.facultyId._id);
+      }
+      if (reimbursement.auditId) {
+        reimbursement.auditId.profileImage = await getProfileImageUrl(reimbursement.auditId._id);
+      }
+    }
+    
     res.json(reimbursements);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -156,6 +196,16 @@ export const getStudentRequests = async (req, res) => {
       .populate('facultyId', 'name email')
       .sort({ createdAt: -1 });
     
+    // Add profile images for populated users
+    for (const request of requests) {
+      if (request.studentId) {
+        request.studentId.profileImage = await getProfileImageUrl(request.studentId._id);
+      }
+      if (request.facultyId) {
+        request.facultyId.profileImage = await getProfileImageUrl(request.facultyId._id);
+      }
+    }
+    
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -176,6 +226,13 @@ export const getFacultyOwnRequests = async (req, res) => {
     const requests = await Reimbursement.find(query)
       .populate('facultySubmitterId', 'name email')
       .sort({ createdAt: -1 });
+    
+    // Add profile images for populated users
+    for (const request of requests) {
+      if (request.facultySubmitterId) {
+        request.facultySubmitterId.profileImage = await getProfileImageUrl(request.facultySubmitterId._id);
+      }
+    }
     
     res.json(requests);
   } catch (error) {

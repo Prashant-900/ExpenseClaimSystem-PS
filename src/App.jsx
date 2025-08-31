@@ -8,6 +8,8 @@ import AuthSuccessPage from './pages/AuthSuccessPage';
 import DashboardPage from './pages/DashboardPage';
 import EditRequestPage from './pages/EditRequestPage';
 import SubmitRequestPage from './pages/SubmitRequestPage';
+import ProfilePage from './pages/ProfilePage';
+import ViewProfilePage from './pages/ViewProfilePage';
 
 
 import { ROLES } from './utils/roles';
@@ -147,7 +149,23 @@ function App() {
             } 
           />
           
-
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/profile/:userId" 
+            element={
+              <ProtectedRoute>
+                <ViewProfilePage />
+              </ProtectedRoute>
+            } 
+          />
           
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>

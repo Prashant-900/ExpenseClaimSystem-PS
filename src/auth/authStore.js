@@ -53,5 +53,9 @@ export const useAuthStore = create((set, get) => ({
 
   setAuthData: (token, user) => {
     set({ token, user });
+  },
+
+  updateUser: (userData) => {
+    set({ user: userData });
   }
 }));

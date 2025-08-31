@@ -36,10 +36,34 @@ export const register = async (req, res) => {
 
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, profileImage: user.profileImage }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+const getProfileImageUrl = async (userId) => {
+  try {
+    const { Client } = await import('minio');
+    const minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: false,
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY
+    });
+    
+    const objectPath = `profiles/${userId}/profile.jpg`;
+    
+    try {
+      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
+      return `http://localhost:5000/api/images/${objectPath}`;
+    } catch (error) {
+      return null;
+    }
+  } catch (error) {
+    return null;
   }
 };
 
@@ -66,11 +90,85 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    const profileImage = await getProfileImageUrl(user._id);
     const token = generateToken(user._id);
+    
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, profileImage }
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, phone, department, bio } = req.body;
+    const updateData = { name, phone, department, bio };
+    
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const userId = req.user._id;
+    const fileName = `profile.jpg`;
+    const objectPath = `profiles/${userId}/${fileName}`;
+    
+    const { Client } = await import('minio');
+    const minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: false,
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY
+    });
+    
+    // Upload new image (this will overwrite existing one)
+    await minioClient.putObject(
+      process.env.MINIO_BUCKET,
+      objectPath,
+      req.file.buffer,
+      req.file.size,
+      { 'Content-Type': req.file.mimetype }
+    );
+
+    const imageUrl = `http://localhost:5000/api/images/${objectPath}?v=${Date.now()}`;
+    
+    // Don't store URL in database, always fetch from MinIO
+
+    res.json({ message: 'Profile image uploaded successfully', imageUrl });
+  } catch (error) {
+    console.error('Profile image upload error:', error);
+    res.status(500).json({ message: 'Failed to upload profile image' });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Get profile image URL
+    const profileImage = await getProfileImageUrl(user._id);
+    
+    res.json({ ...user.toObject(), profileImage });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

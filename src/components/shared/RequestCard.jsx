@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../auth/authStore';
 import StatusBadge from './StatusBadge';
+import { getProfileImageUrl } from '../../utils/imageUtils';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
@@ -18,8 +19,50 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
                   ((request.studentId && request.studentId._id === user.id) ||
                    (request.facultySubmitterId && request.facultySubmitterId._id === user.id));
 
+  const submitter = request.studentId || request.facultySubmitterId;
+  const submitterRole = request.studentId ? 'Student' : 'Faculty';
+
+  const openProfile = () => {
+    if (submitter) {
+      window.open(`/profile/${submitter._id}`, '_blank');
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+      {/* Submitter Profile Header */}
+      {submitter && (
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 cursor-pointer hover:opacity-75 transition-opacity"
+              onClick={openProfile}
+            >
+              {submitter.profileImage ? (
+                <img 
+                  src={submitter.profileImage} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-lg font-medium">
+                  {submitter.name?.charAt(0)?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <p 
+                className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={openProfile}
+              >
+                {submitter.name}
+              </p>
+              <p className="text-sm text-gray-500">{submitterRole}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
         <div>
@@ -29,12 +72,6 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
           <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
           {request.expenseDate && (
             <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
-          )}
-          {request.studentId && (
-            <p className="text-sm text-gray-500">Student: {request.studentId.name}</p>
-          )}
-          {request.facultySubmitterId && (
-            <p className="text-sm text-gray-500">Faculty: {request.facultySubmitterId.name}</p>
           )}
           
           {/* Dynamic fields based on expense type */}

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import RequestCard from '../shared/RequestCard';
+import SearchAndFilter from '../shared/SearchAndFilter';
 import API from '../../api/axios';
 
 const StudentDashboard = () => {
   const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -14,11 +16,49 @@ const StudentDashboard = () => {
     try {
       const { data } = await API.get('/reimbursements');
       setRequests(data);
+      setFilteredRequests(data);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setFilteredRequests(requests);
+      return;
+    }
+    
+    const filtered = requests.filter(request => 
+      request.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.amount?.toString().includes(searchTerm)
+    );
+    setFilteredRequests(filtered);
+  };
+
+  const handleFilter = (filters) => {
+    let filtered = [...requests];
+    
+    if (filters.expenseType) {
+      filtered = filtered.filter(request => request.expenseType === filters.expenseType);
+    }
+    
+    if (filters.status) {
+      filtered = filtered.filter(request => request.status === filters.status);
+    }
+    
+    if (filters.amountRange) {
+      const [min, max] = filters.amountRange.split('-').map(v => v.replace('+', '').replace('$', ''));
+      filtered = filtered.filter(request => {
+        const amount = request.amount;
+        if (filters.amountRange === '1000+') return amount >= 1000;
+        return amount >= parseInt(min) && amount <= parseInt(max);
+      });
+    }
+    
+    setFilteredRequests(filtered);
   };
 
   if (isLoading) {
@@ -37,7 +77,17 @@ const StudentDashboard = () => {
         <p className="mt-1 text-gray-600">Track the status of your submitted reimbursement requests</p>
       </div>
 
-      {requests.length === 0 ? (
+      <SearchAndFilter 
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        showFilters={{
+          expenseType: true,
+          status: true,
+          amountRange: true
+        }}
+      />
+
+      {filteredRequests.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <div className="text-gray-400 text-6xl mb-4">📋</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
@@ -51,7 +101,10 @@ const StudentDashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {requests.map((request) => (
+          <div className="text-sm text-gray-600 mb-4">
+            Showing {filteredRequests.length} of {requests.length} requests
+          </div>
+          {filteredRequests.map((request) => (
             <div key={request._id} className="space-y-3">
               <RequestCard
                 request={request}
