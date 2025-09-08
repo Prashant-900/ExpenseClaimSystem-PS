@@ -10,22 +10,39 @@ export const createExpenseReport = async (req, res) => {
       submitterRole: req.user.role
     };
     
-    // For student submissions, auto-assign faculty by department
+    // For student submissions, don't assign specific faculty
     if (req.user.role === 'Student') {
-      const faculty = await User.findOne({ 
-        department: req.user.department, 
-        role: 'Faculty' 
-      });
-      if (faculty) {
-        reportData.facultyId = faculty._id;
-        reportData.facultyName = faculty.name;
-      }
+      reportData.department = req.user.department;
     }
     
     const report = await ExpenseReport.create(reportData);
     res.status(201).json(report);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+const getProfileImageUrl = async (userId) => {
+  try {
+    const { Client } = await import('minio');
+    const minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: false,
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY
+    });
+    
+    const objectPath = `profiles/${userId}/profile.jpg`;
+    
+    try {
+      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
+      return `http://localhost:5000/api/images/${objectPath}`;
+    } catch (error) {
+      return null;
+    }
+  } catch (error) {
+    return null;
   }
 };
 
@@ -38,11 +55,20 @@ export const getExpenseReports = async (req, res) => {
     } else if (req.user.role === 'Faculty') {
       // Check if it's pending or reviewed endpoint
       if (req.query.pending === 'true') {
-        // Only student reports needing faculty approval
-        query = { facultyId: req.user._id, status: 'Submitted' };
+        // Student reports from same department needing faculty approval
+        query = { 
+          department: req.user.department, 
+          submitterRole: 'Student',
+          status: 'Submitted' 
+        };
       } else if (req.query.reviewed === 'true') {
-        // Only student reports already reviewed by faculty
-        query = { facultyId: req.user._id, status: { $in: ['Faculty Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] } };
+        // Student reports from same department already reviewed by this faculty
+        query = { 
+          department: req.user.department,
+          submitterRole: 'Student',
+          facultyId: req.user._id,
+          status: { $in: ['Draft', 'Faculty Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] } 
+        };
       } else {
         // Default: only faculty's own reports
         query.submitterId = req.user._id;
@@ -56,8 +82,13 @@ export const getExpenseReports = async (req, res) => {
         query.status = 'Faculty Approved';
       }
     } else if (req.user.role === 'Finance') {
-      // Finance sees all reports they can/have reviewed
-      query.status = { $in: ['Audit Approved', 'Finance Approved', 'Rejected'] };
+      if (req.query.processed === 'true') {
+        // Finance processed endpoint: all reports that reached finance
+        query.status = { $in: ['Audit Approved', 'Finance Approved', 'Rejected'] };
+      } else {
+        // Default finance endpoint: pending reports
+        query.status = 'Audit Approved';
+      }
     }
     
     const reports = await ExpenseReport.find(query)
@@ -65,7 +96,16 @@ export const getExpenseReports = async (req, res) => {
       .populate('facultyId', 'name email department')
       .sort({ createdAt: -1 });
     
-    res.json(reports);
+    // Add profile images
+    const reportsWithImages = await Promise.all(reports.map(async (report) => {
+      const reportObj = report.toObject();
+      if (reportObj.submitterId) {
+        reportObj.submitterId.profileImage = await getProfileImageUrl(reportObj.submitterId._id);
+      }
+      return reportObj;
+    }));
+    
+    res.json(reportsWithImages);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -74,7 +114,7 @@ export const getExpenseReports = async (req, res) => {
 export const getExpenseReportById = async (req, res) => {
   try {
     const report = await ExpenseReport.findById(req.params.id)
-      .populate('submitterId', 'name email department role')
+      .populate('submitterId', 'name email department role profileImage')
       .populate('facultyId', 'name email department');
     
     if (!report) {
@@ -89,17 +129,40 @@ export const getExpenseReportById = async (req, res) => {
 
 export const updateExpenseReport = async (req, res) => {
   try {
-    const report = await ExpenseReport.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).populate('facultyId', 'name email department');
+    const report = await ExpenseReport.findById(req.params.id);
     
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
     
-    res.json(report);
+    // Validate receipt images for all items if updating items
+    if (req.body.items) {
+      for (const item of req.body.items) {
+        if (!item.receiptImage) {
+          return res.status(400).json({ 
+            message: 'Receipt image is required for all expense items' 
+          });
+        }
+      }
+    }
+    
+    // Update fields
+    Object.keys(req.body).forEach(key => {
+      report[key] = req.body[key];
+    });
+    
+    // Recalculate total if items are updated
+    if (req.body.items) {
+      report.totalAmount = req.body.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0);
+    }
+    
+    await report.save();
+    
+    const updatedReport = await ExpenseReport.findById(req.params.id)
+      .populate('submitterId', 'name email department role profileImage')
+      .populate('facultyId', 'name email department');
+    
+    res.json(updatedReport);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -111,6 +174,19 @@ export const submitExpenseReport = async (req, res) => {
     
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
+    }
+    
+    // Validate that all items have receipt images
+    if (!report.items || report.items.length === 0) {
+      return res.status(400).json({ message: 'At least one expense item is required' });
+    }
+    
+    for (const item of report.items) {
+      if (!item.receiptImage) {
+        return res.status(400).json({ 
+          message: 'All expense items must have receipt images before submission' 
+        });
+      }
     }
     
     // Determine next status based on submitter role
@@ -144,13 +220,19 @@ export const approveExpenseReport = async (req, res) => {
     if (req.user.role === 'Faculty' && report.status === 'Submitted') {
       if (action === 'approve') {
         report.status = 'Faculty Approved';
+        report.facultyId = req.user._id;
+        report.facultyName = req.user.name;
         report.facultyApproval = { approved: true, date: currentDate, remarks };
       } else if (action === 'reject') {
         report.status = 'Rejected';
+        report.facultyId = req.user._id;
+        report.facultyName = req.user.name;
         report.facultyApproval = { approved: false, date: currentDate, remarks };
       } else if (action === 'sendback') {
         report.status = 'Draft';
-        report.facultyApproval = { approved: null, date: currentDate, remarks, action: 'sendback' };
+        report.facultyId = req.user._id;
+        report.facultyName = req.user.name;
+        report.facultyApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
       }
     } else if (req.user.role === 'Audit' && report.status === 'Faculty Approved') {
       if (action === 'approve') {
@@ -161,7 +243,7 @@ export const approveExpenseReport = async (req, res) => {
         report.auditApproval = { approved: false, date: currentDate, remarks };
       } else if (action === 'sendback') {
         report.status = 'Submitted';
-        report.auditApproval = { approved: null, date: currentDate, remarks, action: 'sendback' };
+        report.auditApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
       }
     } else if (req.user.role === 'Finance' && report.status === 'Audit Approved') {
       if (action === 'approve') {
@@ -172,7 +254,7 @@ export const approveExpenseReport = async (req, res) => {
         report.financeApproval = { approved: false, date: currentDate, remarks };
       } else if (action === 'sendback') {
         report.status = 'Faculty Approved';
-        report.financeApproval = { approved: null, date: currentDate, remarks, action: 'sendback' };
+        report.financeApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
       }
     } else {
       return res.status(400).json({ message: 'Invalid approval action for current status' });
@@ -306,7 +388,7 @@ export const deleteExpenseReport = async (req, res) => {
     }
     
     // Check if user owns the report
-    if (report.facultyId.toString() !== req.user._id.toString()) {
+    if (report.submitterId.toString() !== req.user._id.toString()) {
       console.log('User does not own this report');
       return res.status(403).json({ message: 'You can only delete your own reports' });
     }

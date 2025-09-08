@@ -2,7 +2,7 @@ import { getStatusColor } from '../../utils/statuses';
 
 const StatusBadge = ({ status }) => {
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+    <span className={`px-3 py-1 rounded-md text-xs font-medium ${getStatusColor(status)}`}>
       {status}
     </span>
   );

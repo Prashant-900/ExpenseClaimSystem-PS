@@ -22,6 +22,7 @@ router.post('/', authorize('Faculty', 'Student'), createExpenseReport);
 router.get('/', getExpenseReports);
 router.get('/:id', getExpenseReportById);
 router.put('/:id', authorize('Faculty', 'Student'), updateExpenseReport);
+router.patch('/:id', authorize('Faculty', 'Student'), updateExpenseReport);
 router.delete('/:id', authorize('Faculty', 'Student'), deleteExpenseReport);
 router.patch('/:id/submit', authorize('Faculty', 'Student'), submitExpenseReport);
 

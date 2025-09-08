@@ -125,31 +125,9 @@ export const uploadProfileImage = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const userId = req.user._id;
-    const fileName = `profile.jpg`;
-    const objectPath = `profiles/${userId}/${fileName}`;
-    
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    // Upload new image (this will overwrite existing one)
-    await minioClient.putObject(
-      process.env.MINIO_BUCKET,
-      objectPath,
-      req.file.buffer,
-      req.file.size,
-      { 'Content-Type': req.file.mimetype }
-    );
-
-    const imageUrl = `http://localhost:5000/api/images/${objectPath}?v=${Date.now()}`;
-    
-    // Don't store URL in database, always fetch from MinIO
+    const { uploadToMinio } = await import('../middleware/fileUploadMiddleware.js');
+    const fileName = await uploadToMinio(req.file, req.user._id, 'profile');
+    const imageUrl = `http://localhost:5000/api/images/${fileName}?v=${Date.now()}`;
 
     res.json({ message: 'Profile image uploaded successfully', imageUrl });
   } catch (error) {

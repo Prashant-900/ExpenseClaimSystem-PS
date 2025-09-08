@@ -70,7 +70,7 @@ const DraftsPage = () => {
                   <p className="text-gray-600 mt-1">{draft.reportType}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">${draft.totalAmount?.toFixed(2) || '0.00'}</p>
+                  <p className="text-2xl font-bold text-green-600">₹{draft.totalAmount?.toFixed(2) || '0.00'}</p>
                   <p className="text-sm text-gray-500">{draft.fundingSource}</p>
                 </div>
               </div>

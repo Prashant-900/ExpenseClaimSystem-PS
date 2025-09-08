@@ -3,6 +3,7 @@ import RequestCard from '../../../shared/components/RequestCard';
 import ExpenseCard from '../../../shared/components/ExpenseCard';
 import SearchAndFilter from '../../../shared/components/SearchAndFilter';
 import API from '../../../shared/services/axios';
+import { HiOutlineClipboardDocumentList, HiOutlinePlus } from 'react-icons/hi2';
 
 const StudentDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -65,7 +66,7 @@ const StudentDashboard = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
         <span className="ml-3 text-gray-600">Loading your requests...</span>
       </div>
     );
@@ -89,14 +90,17 @@ const StudentDashboard = () => {
       />
 
       {filteredRequests.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="text-gray-400 text-6xl mb-4">📋</div>
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-12 text-center">
+          <div className="flex justify-center mb-4">
+            <HiOutlineClipboardDocumentList className="w-16 h-16 text-gray-400" />
+          </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
           <p className="text-gray-500 mb-6">Submit your first reimbursement request to get started!</p>
           <button
             onClick={() => window.location.href = '/submit'}
-            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            className="flex items-center gap-2 mx-auto px-6 py-3 bg-gray-800 text-white font-medium rounded-md hover:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
           >
+            <HiOutlinePlus className="w-4 h-4" />
             Submit Request
           </button>
         </div>

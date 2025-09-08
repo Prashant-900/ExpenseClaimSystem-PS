@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
 import API from '../../../shared/services/axios';
+import ExpenseItemForm from '../components/ExpenseItemForm';
+import { formatCurrency } from '../../../utils/currencyUtils';
 
 const StudentExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
@@ -18,6 +20,8 @@ const StudentExpenseForm = ({ onSuccess }) => {
     items: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +33,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
         submitterId: user._id,
         submitterRole: 'Student',
         expenseReportDate: new Date(),
-        totalAmount: formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+        totalAmount: formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0)
       };
       
       await API.post('/expense-reports', reportData);
@@ -43,6 +47,28 @@ const StudentExpenseForm = ({ onSuccess }) => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddItem = (item) => {
+    if (editingItem !== null) {
+      const updatedItems = [...formData.items];
+      updatedItems[editingItem] = item;
+      setFormData({ ...formData, items: updatedItems });
+      setEditingItem(null);
+    } else {
+      setFormData({ ...formData, items: [...formData.items, item] });
+    }
+    setShowItemForm(false);
+  };
+
+  const handleEditItem = (index) => {
+    setEditingItem(index);
+    setShowItemForm(true);
+  };
+
+  const handleDeleteItem = (index) => {
+    const updatedItems = formData.items.filter((_, i) => i !== index);
+    setFormData({ ...formData, items: updatedItems });
   };
 
   return (
@@ -157,10 +183,73 @@ const StudentExpenseForm = ({ onSuccess }) => {
           </div>
         </div>
 
+        {/* Expense Items */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Expense Items</h3>
+            <button
+              type="button"
+              onClick={() => setShowItemForm(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Add Item
+            </button>
+          </div>
+          
+          {formData.items.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No expense items added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {formData.items.map((item, index) => (
+                <div key={index} className="border rounded p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium">{item.category}</h4>
+                        <span className="text-lg font-bold text-green-600">
+                          {formatCurrency(item.amountInINR, 'INR')}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-sm">{item.description}</p>
+                      <p className="text-gray-500 text-xs mt-1">
+                        {new Date(item.date).toLocaleDateString()} • {item.paymentMethod}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        type="button"
+                        onClick={() => handleEditItem(index)}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(index)}
+                        className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-3">
+                <div className="flex justify-between items-center font-bold text-lg">
+                  <span>Total Amount:</span>
+                  <span className="text-green-600">
+                    {formatCurrency(formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0), 'INR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-4">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || formData.items.length === 0}
             className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {isSubmitting ? 'Creating...' : 'Create Expense Claim'}
@@ -174,6 +263,17 @@ const StudentExpenseForm = ({ onSuccess }) => {
           </button>
         </div>
       </form>
+
+      {showItemForm && (
+        <ExpenseItemForm
+          item={editingItem !== null ? formData.items[editingItem] : {}}
+          onSave={handleAddItem}
+          onCancel={() => {
+            setShowItemForm(false);
+            setEditingItem(null);
+          }}
+        />
+      )}
     </div>
   );
 };

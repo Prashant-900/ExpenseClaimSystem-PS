@@ -135,24 +135,49 @@ const ExpenseReportDetailModal = ({ reportId, isOpen, onClose }) => {
                   <h3 className="text-lg font-semibold mb-3">Expense Items ({report.items.length})</h3>
                   <div className="space-y-3">
                     {report.items.map((item, index) => (
-                      <div key={index} className="bg-white p-3 rounded border">
-                        <div className="grid grid-cols-3 gap-4">
+                      <div key={index} className="bg-white p-4 rounded border">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <span className="font-medium">Date:</span> {new Date(item.date).toLocaleDateString()}
+                            <h4 className="font-semibold text-lg">{item.category}</h4>
+                            <p className="text-gray-600">{item.description}</p>
                           </div>
-                          <div>
-                            <span className="font-medium">Category:</span> {item.category}
-                          </div>
-                          <div>
-                            <span className="font-medium">Amount:</span> ${item.amount?.toFixed(2)}
-                          </div>
-                          <div className="col-span-2">
-                            <span className="font-medium">Description:</span> {item.description}
-                          </div>
-                          <div>
-                            <span className="font-medium">Payment:</span> {item.paymentMethod}
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-green-600">₹{item.amountInINR?.toFixed(2)}</div>
+                            {item.currency !== 'INR' && (
+                              <div className="text-sm text-gray-500">
+                                {item.currency} {item.amount?.toFixed(2)}
+                              </div>
+                            )}
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                          <div><span className="font-medium">Date:</span> {new Date(item.date).toLocaleDateString()}</div>
+                          <div><span className="font-medium">Payment:</span> {item.paymentMethod}</div>
+                          <div><span className="font-medium">Business Purpose:</span> {item.businessPurpose}</div>
+                          {item.vendor && <div><span className="font-medium">Vendor:</span> {item.vendor}</div>}
+                          {(item.fromCity || item.toCity) && (
+                            <div className="col-span-2">
+                              <span className="font-medium">Route:</span> 
+                              {item.fromCity && `${item.fromCity}, ${item.fromState}`}
+                              {item.fromCity && item.toCity && ' → '}
+                              {item.toCity && `${item.toCity}, ${item.toState}`}
+                            </div>
+                          )}
+                        </div>
+                        {/* Receipt Image */}
+                        {item.receiptImage && (
+                          <div className="border-t pt-3">
+                            <span className="font-medium text-sm">Receipt:</span>
+                            <div className="mt-2">
+                              <img 
+                                src={item.receiptImage} 
+                                alt="Receipt"
+                                className="max-w-xs max-h-32 object-contain border rounded cursor-pointer"
+                                onClick={() => window.open(item.receiptImage, '_blank')}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -181,6 +206,11 @@ const ExpenseReportDetailModal = ({ reportId, isOpen, onClose }) => {
                       {report.facultyApproval.remarks && (
                         <div className="mt-2 text-sm text-gray-600">
                           <span className="font-medium">Remarks:</span> {report.facultyApproval.remarks}
+                        </div>
+                      )}
+                      {report.facultyName && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          By: {report.facultyName}
                         </div>
                       )}
                     </div>

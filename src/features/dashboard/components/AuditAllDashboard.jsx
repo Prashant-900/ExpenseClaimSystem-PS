@@ -68,12 +68,12 @@ const AuditAllDashboard = () => {
                     </h3>
                     <p className="text-gray-600 mt-1">{report.reportType} ({report.submitterRole})</p>
                     <p className="text-sm text-gray-500">
-                      Period: {new Date(report.expensePeriodStart).toLocaleDateDate()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
+                      Period: {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">${report.totalAmount?.toFixed(2) || '0.00'}</p>
+                  <p className="text-2xl font-bold text-green-600">₹{report.totalAmount?.toFixed(2) || '0.00'}</p>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     report.status === 'Audit Approved' ? 'bg-green-100 text-green-800' :
                     report.status === 'Finance Approved' ? 'bg-green-100 text-green-800' :

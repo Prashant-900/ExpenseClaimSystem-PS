@@ -10,7 +10,10 @@ const userSchema = new mongoose.Schema({
   phone: { type: String },
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME']
+    enum: ['SCEE', 'SMME'],
+    required: function() {
+      return ['Student', 'Faculty'].includes(this.role);
+    }
   },
   bio: { type: String },
   profileImage: { type: String }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { HiOutlineMagnifyingGlass, HiOutlineXMark } from 'react-icons/hi2';
 
 const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +35,7 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+    <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200 mb-6">
       {/* Search Bar */}
       <div className="flex gap-4 mb-4">
         <div className="flex-1">
@@ -44,17 +45,16 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
               placeholder="Search by title, description, or amount..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
-            <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
         </div>
         <button
           onClick={clearFilters}
-          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
         >
+          <HiOutlineXMark className="w-4 h-4" />
           Clear All
         </button>
       </div>
@@ -67,7 +67,7 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
             <select
               value={filters.expenseType}
               onChange={(e) => handleFilterChange('expenseType', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
               <option value="">All Types</option>
               <option value="Travel">Travel</option>
@@ -85,7 +85,7 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
               <option value="">All Status</option>
               <option value="Pending - Faculty">Pending - Faculty</option>
@@ -106,7 +106,7 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
             <select
               value={filters.dateRange}
               onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
               <option value="">All Time</option>
               <option value="today">Today</option>
@@ -123,7 +123,7 @@ const SearchAndFilter = ({ onSearch, onFilter, showFilters = {} }) => {
             <select
               value={filters.amountRange}
               onChange={(e) => handleFilterChange('amountRange', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
               <option value="">All Amounts</option>
               <option value="0-100">$0 - $100</option>

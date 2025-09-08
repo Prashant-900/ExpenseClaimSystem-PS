@@ -80,7 +80,7 @@ const Login = () => {
           <GoogleAuth />
 
           <div className="text-center">
-            <Link to="/register" className="text-blue-600 hover:text-blue-500">
+            <Link to="/register" className="text-gray-600 hover:text-gray-800">
               Don't have an account? Sign up
             </Link>
           </div>

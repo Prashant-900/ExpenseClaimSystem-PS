@@ -5,34 +5,76 @@ const expenseItemSchema = new mongoose.Schema({
   category: { 
     type: String, 
     enum: [
-      'Travel – Airfare',
-      'Travel – Accommodation', 
-      'Travel – Meals & Per Diem',
-      'Local Transportation (Taxi, Ride-share, Mileage reimbursement)',
-      'Conference Fees',
-      'Research Equipment/Supplies',
-      'Lab Consumables',
-      'Books/Subscriptions/Software',
-      'Student Activity Support (e.g., refreshments, materials)',
-      'Guest Lecturer Honorarium',
-      'Miscellaneous / Other'
+      'Travel - Air', 'Travel - Train', 'Travel - Bus', 'Travel - Ground Transport',
+      'Accommodation - Hotel', 'Accommodation - Guest House',
+      'Meals - Breakfast', 'Meals - Lunch', 'Meals - Dinner',
+      'Conference - Registration', 'Conference - Workshop',
+      'Supplies - Lab', 'Supplies - Office',
+      'Miscellaneous - Other'
     ], 
     required: true 
   },
-  vendor: { type: String, required: true },
+  
+  // Basic fields
   description: { type: String, required: true },
   amount: { type: Number, required: true },
+  currency: { type: String, default: 'INR' },
+  amountInINR: { type: Number, required: true },
   paymentMethod: { 
     type: String, 
-    enum: [
-      'University Credit Card (P-Card)',
-      'Personal Funds (Reimbursement)', 
-      'Direct Invoice to University'
-    ], 
+    enum: ['University Credit Card (P-Card)', 'Personal Funds (Reimbursement)', 'Direct Invoice to University'], 
     required: true 
   },
   receipt: { type: String },
-  chargeToGrant: { type: Boolean, default: false }
+  receiptImage: { type: String, required: true },
+  businessPurpose: { type: String, required: true },
+  
+  // Location fields
+  country: { type: String },
+  state: { type: String },
+  city: { type: String },
+  fromCountry: { type: String },
+  fromState: { type: String },
+  fromCity: { type: String },
+  toCountry: { type: String },
+  toState: { type: String },
+  toCity: { type: String },
+  distance: { type: Number },
+  
+  // Travel specific
+  flightNumber: { type: String },
+  airline: { type: String },
+  ticketClass: { type: String },
+  trainNumber: { type: String },
+  trainName: { type: String },
+  ticketType: { type: String },
+  busOperator: { type: String },
+  transportMode: { type: String },
+  odometerReading: { type: Number },
+  
+  // Accommodation specific
+  checkInDate: { type: Date },
+  checkOutDate: { type: Date },
+  hotelName: { type: String },
+  facilityName: { type: String },
+  numberOfNights: { type: Number },
+  
+  // Meals specific
+  restaurantName: { type: String },
+  numberOfAttendees: { type: Number },
+  
+  // Conference specific
+  eventName: { type: String },
+  eventLocation: { type: String },
+  eventDates: { type: String },
+  registrationType: { type: String },
+  hostingInstitution: { type: String },
+  
+  // Supplies specific
+  vendor: { type: String },
+  itemDescription: { type: String },
+  quantity: { type: Number },
+  projectGrant: { type: String }
 });
 
 const expenseReportSchema = new mongoose.Schema({

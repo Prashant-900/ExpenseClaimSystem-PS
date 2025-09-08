@@ -1,7 +1,6 @@
 import { useAuthStore } from '../../authentication/authStore';
 import Layout from '../../../shared/layout/Layout';
-import StudentExpenseForm from '../forms/StudentExpenseForm';
-import FacultyExpenseForm from '../forms/FacultyExpenseForm';
+import MultiStepExpenseForm from '../components/MultiStepExpenseForm';
 
 const ExpenseFormPage = () => {
   const { user } = useAuthStore();
@@ -12,10 +11,8 @@ const ExpenseFormPage = () => {
 
   return (
     <Layout>
-      {user?.role === 'Student' ? (
-        <StudentExpenseForm onSuccess={handleSuccess} />
-      ) : user?.role === 'Faculty' ? (
-        <FacultyExpenseForm onSuccess={handleSuccess} />
+      {user?.role === 'Student' || user?.role === 'Faculty' ? (
+        <MultiStepExpenseForm onSuccess={handleSuccess} />
       ) : (
         <div className="text-center py-12">
           <p className="text-gray-500">Access denied. Only students and faculty can create expense reports.</p>

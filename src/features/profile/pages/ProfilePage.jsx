@@ -34,7 +34,7 @@ const ProfilePage = () => {
         try {
           const response = await API.get('/auth/me');
           if (response.data.profileImage) {
-            setImagePreview(response.data.profileImage);
+            setImagePreview(`${response.data.profileImage}?v=${Date.now()}`);
           }
         } catch (error) {
           console.error('Failed to fetch profile image:', error);
@@ -77,7 +77,7 @@ const ProfilePage = () => {
         updatedUser = userResponse.data;
         
         // Set preview with fresh URL and force re-render
-        setImagePreview(updatedUser.profileImage);
+        setImagePreview(`${updatedUser.profileImage}?v=${Date.now()}`);
         setImageKey(Date.now());
       }
       

@@ -12,6 +12,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import chatbotRoutes from './routes/chatbotRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler } from './utils/errorHandler.js';
 import { initializeKnowledgeBase } from './controllers/geminiChatbotController.js';
 
@@ -19,7 +20,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 app.use(session({
   secret: process.env.JWT_SECRET,
@@ -45,6 +49,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/upload', uploadRoutes);
+
+
 
 app.use(errorHandler);
 

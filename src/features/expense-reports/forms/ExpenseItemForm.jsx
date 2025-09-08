@@ -2,32 +2,27 @@ import { useState } from 'react';
 import API from '../../../shared/services/axios';
 import { validateExpenseItem } from '../../../utils/expenseValidation';
 
-const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => {
+const ExpenseItemForm = ({ item, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    date: editItem?.date?.split('T')[0] || '',
-    category: editItem?.category || '',
-    vendor: editItem?.vendor || '',
-    description: editItem?.description || '',
-    amount: editItem?.amount || '',
-    paymentMethod: editItem?.paymentMethod || '',
-    chargeToGrant: editItem?.chargeToGrant || false
+    date: item?.date?.split('T')[0] || '',
+    category: item?.category || '',
+    description: item?.description || '',
+    amount: item?.amount || '',
+    currency: item?.currency || 'INR',
+    paymentMethod: item?.paymentMethod || '',
+    businessPurpose: item?.businessPurpose || ''
   });
-  const [receipt, setReceipt] = useState(null);
+  const [receipts, setReceipts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const categories = [
-    'Travel – Airfare',
-    'Travel – Accommodation', 
-    'Travel – Meals & Per Diem',
-    'Local Transportation (Taxi, Ride-share, Mileage reimbursement)',
-    'Conference Fees',
-    'Research Equipment/Supplies',
-    'Lab Consumables',
-    'Books/Subscriptions/Software',
-    'Student Activity Support (e.g., refreshments, materials)',
-    'Guest Lecturer Honorarium',
-    'Miscellaneous / Other'
+    'Travel - Air', 'Travel - Train', 'Travel - Bus', 'Travel - Ground Transport',
+    'Accommodation - Hotel', 'Accommodation - Guest House',
+    'Meals - Breakfast', 'Meals - Lunch', 'Meals - Dinner',
+    'Conference - Registration', 'Conference - Workshop',
+    'Supplies - Lab', 'Supplies - Office',
+    'Miscellaneous - Other'
   ];
 
   const paymentMethods = [
@@ -50,26 +45,36 @@ const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => 
     }
 
     try {
-      const formDataToSend = new FormData();
-      Object.keys(formData).forEach(key => {
-        formDataToSend.append(key, formData[key]);
-      });
-      
-      if (receipt) {
-        formDataToSend.append('receipt', receipt);
+      if (receipts.length === 0 && !item) {
+        setError('At least one receipt image is required');
+        setIsLoading(false);
+        return;
       }
 
-      if (editItem) {
-        await API.put(`/expense-reports/${reportId}/items/${editItem._id}`, formData);
-      } else {
-        await API.post(`/expense-reports/${reportId}/items`, formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+      let receiptUrls = item?.receipts || [];
+      
+      if (receipts.length > 0) {
+        for (const receipt of receipts) {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', receipt);
+          
+          const uploadResponse = await API.post('/upload', formDataUpload, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          receiptUrls.push(uploadResponse.data.filename);
+        }
       }
       
-      onSuccess();
+      const itemData = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        amountInINR: parseFloat(formData.amount),
+        receipts: receiptUrls
+      };
+      
+      onSave(itemData);
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to save expense item');
+      setError('Failed to save expense item: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +86,7 @@ const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => 
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">
-              {editItem ? 'Edit' : 'Add'} Expense Item
+              {item ? 'Edit' : 'Add'} Expense Item
             </h2>
             <button
               onClick={onCancel}
@@ -129,19 +134,7 @@ const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => 
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor/Payee *
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.vendor}
-                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                placeholder="Airline, Hotel, Supplier, etc."
-              />
-            </div>
+
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -189,31 +182,43 @@ const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => 
               </div>
             </div>
 
-            {!editItem && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Receipt Upload
-                </label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onChange={(e) => setReceipt(e.target.files[0])}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="chargeToGrant"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                checked={formData.chargeToGrant}
-                onChange={(e) => setFormData({ ...formData, chargeToGrant: e.target.checked })}
-              />
-              <label htmlFor="chargeToGrant" className="ml-2 block text-sm text-gray-900">
-                Charge to Grant/Department
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Business Purpose *
               </label>
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.businessPurpose}
+                onChange={(e) => setFormData({ ...formData, businessPurpose: e.target.value })}
+                placeholder="Conference attendance, research meeting, etc."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Receipt Images * (Required)
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => setReceipts(Array.from(e.target.files))}
+              />
+              <p className="text-xs text-gray-500 mt-1">Upload one or more receipt images (JPG, PNG, PDF)</p>
+              {receipts.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-green-600">{receipts.length} file(s) selected</p>
+                  <ul className="text-xs text-gray-600">
+                    {receipts.map((file, index) => (
+                      <li key={index}>{file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -222,7 +227,7 @@ const ExpenseItemForm = ({ reportId, onSuccess, onCancel, editItem = null }) => 
                 disabled={isLoading}
                 className="flex-1 py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {isLoading ? 'Saving...' : (editItem ? 'Update Item' : 'Add Item')}
+                {isLoading ? 'Saving...' : (item ? 'Update Item' : 'Add Item')}
               </button>
               <button
                 type="button"

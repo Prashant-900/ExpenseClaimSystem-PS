@@ -4,9 +4,9 @@ import { authenticate } from '../utils/authorizationMiddleware.js';
 
 const router = express.Router();
 
-router.get('/:fileName(*)', authenticate, async (req, res) => {
+router.get('/*', async (req, res) => {
   try {
-    const fileName = req.params.fileName;
+    const fileName = req.params[0];
     const stream = await minioClient.getObject(process.env.MINIO_BUCKET, fileName);
     
     // Set appropriate headers

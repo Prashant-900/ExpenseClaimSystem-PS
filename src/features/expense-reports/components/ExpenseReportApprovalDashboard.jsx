@@ -79,7 +79,7 @@ const ExpenseReportApprovalDashboard = () => {
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {report.submitterId?.profileImage ? (
                       <img 
-                        src={report.submitterId.profileImage} 
+                        src={`${report.submitterId.profileImage}?v=${Date.now()}`} 
                         alt="Profile" 
                         className="w-full h-full object-cover"
                       />
@@ -106,7 +106,7 @@ const ExpenseReportApprovalDashboard = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">${report.totalAmount?.toFixed(2) || '0.00'}</p>
+                  <p className="text-2xl font-bold text-green-600">₹{report.totalAmount?.toFixed(2) || '0.00'}</p>
                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
                     {report.status}
                   </span>
@@ -119,11 +119,44 @@ const ExpenseReportApprovalDashboard = () => {
                 </div>
                 <div>
                   <span className="font-medium">Items:</span> {report.items?.length || 0}
+                  {report.items?.some(item => !item.receiptImage) && (
+                    <span className="ml-2 text-red-500 text-xs">(Missing receipts)</span>
+                  )}
                 </div>
                 <div>
                   <span className="font-medium">Funding:</span> {report.fundingSource}
                 </div>
               </div>
+              
+              {/* Receipt Images Preview */}
+              {report.items?.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-sm font-medium text-gray-700">Receipt Images:</span>
+                  <div className="flex gap-2 mt-2 overflow-x-auto">
+                    {report.items.slice(0, 4).map((item, index) => (
+                      <div key={index} className="flex-shrink-0">
+                        {item.receiptImage ? (
+                          <img 
+                            src={item.receiptImage} 
+                            alt={`Receipt ${index + 1}`}
+                            className="w-16 h-16 object-cover border rounded cursor-pointer"
+                            onClick={() => window.open(item.receiptImage, '_blank')}
+                          />
+                        ) : (
+                          <div className="w-16 h-16 border-2 border-dashed border-red-300 rounded flex items-center justify-center">
+                            <span className="text-red-400 text-xs">No Image</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {report.items.length > 4 && (
+                      <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center bg-gray-100">
+                        <span className="text-gray-500 text-xs">+{report.items.length - 4}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button

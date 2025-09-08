@@ -82,8 +82,8 @@ const ExpenseReportForm = ({ onSuccess }) => {
             )}
 
             {/* 1. Faculty & Report Information */}
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-              <h3 className="text-xl font-bold text-blue-900 mb-6">1. Faculty & Report Information</h3>
+            <div className="bg-gray-50 p-6 rounded-md border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">1. Faculty & Report Information</h3>
               
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -93,7 +93,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.facultyName}
                     onChange={(e) => setFormData({ ...formData, facultyName: e.target.value })}
                     placeholder="Dr. John Smith"
@@ -105,7 +105,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   </label>
                   <select
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   >
@@ -125,7 +125,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.expensePeriodStart}
                     onChange={(e) => setFormData({ ...formData, expensePeriodStart: e.target.value })}
                   />
@@ -137,7 +137,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.expensePeriodEnd}
                     onChange={(e) => setFormData({ ...formData, expensePeriodEnd: e.target.value })}
                   />
@@ -151,7 +151,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                   value={formData.purposeOfExpense}
                   onChange={(e) => setFormData({ ...formData, purposeOfExpense: e.target.value })}
                   placeholder="Conference travel, Research equipment, Lab supplies, Guest lecture, Student activity"
@@ -164,7 +164,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                 </label>
                 <select
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                   value={formData.reportType}
                   onChange={(e) => setFormData({ ...formData, reportType: e.target.value })}
                 >
@@ -177,8 +177,8 @@ const ExpenseReportForm = ({ onSuccess }) => {
             </div>
 
             {/* 2. Expense Summary (Header Level) */}
-            <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-              <h3 className="text-xl font-bold text-green-900 mb-6">2. Expense Summary (Header Level)</h3>
+            <div className="bg-gray-50 p-6 rounded-md border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">2. Expense Summary (Header Level)</h3>
               
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -187,7 +187,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   </label>
                   <select
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.fundingSource}
                     onChange={(e) => setFormData({ ...formData, fundingSource: e.target.value })}
                   >
@@ -204,7 +204,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                     value={formData.costCenter}
                     onChange={(e) => setFormData({ ...formData, costCenter: e.target.value })}
                     placeholder="Dept of Chemistry Lab Budget"
@@ -220,7 +220,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                   value={formData.programProjectCode}
                   onChange={(e) => setFormData({ ...formData, programProjectCode: e.target.value })}
                   placeholder="If tied to funded research or academic project"
@@ -235,7 +235,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                       Business Unit
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                       value={formData.businessUnit}
                       onChange={(e) => setFormData({ ...formData, businessUnit: e.target.value })}
                     >
@@ -250,7 +250,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                       Function
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                       value={formData.function}
                       onChange={(e) => setFormData({ ...formData, function: e.target.value })}
                     >
@@ -268,7 +268,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                       Fund
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-one focus:ring-1 focus:ring-gray-400"
                       value={formData.fund}
                       onChange={(e) => setFormData({ ...formData, fund: e.target.value })}
                     >
@@ -283,7 +283,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
                       Region (Campus)
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                       value={formData.region}
                       onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                     >

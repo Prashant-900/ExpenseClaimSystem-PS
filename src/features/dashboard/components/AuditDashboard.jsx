@@ -44,7 +44,12 @@ const AuditDashboard = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+        <span className="ml-3 text-gray-600">Loading...</span>
+      </div>
+    );
   }
 
   return (
@@ -85,7 +90,7 @@ const AuditDashboard = () => {
               </label>
               <textarea
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add your comments..."
@@ -96,18 +101,18 @@ const AuditDashboard = () => {
               <button
                 onClick={confirmAction}
                 disabled={(actionModal.action === 'reject' || actionModal.action === 'sendback') && !remarks.trim()}
-                className={`px-4 py-2 rounded text-white ${
-                  actionModal.action === 'approve' ? 'bg-green-600 hover:bg-green-700' :
-                  actionModal.action === 'sendback' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                  'bg-red-600 hover:bg-red-700'
-                } disabled:opacity-50`}
+                className={`px-4 py-2 rounded-md text-white font-medium disabled:opacity-50 transition-colors ${
+                  actionModal.action === 'approve' ? 'bg-emerald-700 hover:bg-emerald-800' :
+                  actionModal.action === 'sendback' ? 'bg-amber-700 hover:bg-amber-800' :
+                  'bg-red-700 hover:bg-red-800'
+                }`}
               >
                 Confirm {actionModal.action === 'approve' ? 'Approval' : 
                         actionModal.action === 'sendback' ? 'Send Back' : 'Rejection'}
               </button>
               <button
                 onClick={() => setActionModal(null)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium transition-colors"
               >
                 Cancel
               </button>

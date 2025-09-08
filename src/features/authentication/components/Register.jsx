@@ -121,7 +121,7 @@ const Register = () => {
           <GoogleAuth />
 
           <div className="text-center">
-            <Link to="/login" className="text-blue-600 hover:text-blue-500">
+            <Link to="/login" className="text-gray-600 hover:text-gray-800">
               Already have an account? Sign in
             </Link>
           </div>

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
 import StatusBadge from './StatusBadge';
 import { getProfileImageUrl } from '../../utils/fileUploadUtils';
+import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
@@ -38,14 +39,14 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-lg font-medium">
-                  {submitter.name?.charAt(0)?.toUpperCase()}
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <HiOutlineUser className="w-6 h-6" />
                 </div>
               )}
             </div>
             <div>
               <p 
-                className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                className="font-medium text-gray-900 cursor-pointer hover:text-gray-700 transition-colors"
                 onClick={openProfile}
               >
                 {submitter.name}
@@ -127,21 +128,24 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
           <div className="flex gap-3 mt-4">
             <button
               onClick={() => onAction(request._id, 'approve')}
-              className="btn-success"
+              className="flex items-center gap-2 btn-success"
             >
+              <HiOutlineCheck className="w-4 h-4" />
               Approve
             </button>
             <button
               onClick={() => onAction(request._id, 'reject')}
-              className="btn-danger"
+              className="flex items-center gap-2 btn-danger"
             >
+              <HiOutlineXMark className="w-4 h-4" />
               Reject
             </button>
             {canSendBack && (
               <button
                 onClick={() => onAction(request._id, 'sendback')}
-                className="btn-warning"
+                className="flex items-center gap-2 btn-warning"
               >
+                <HiOutlineArrowUturnLeft className="w-4 h-4" />
                 Send Back
               </button>
             )}

@@ -56,6 +56,6 @@ export const useAuthStore = create((set, get) => ({
   },
 
   updateUser: (userData) => {
-    set({ user: userData });
+    set({ user: { ...get().user, ...userData } });
   }
 }));
