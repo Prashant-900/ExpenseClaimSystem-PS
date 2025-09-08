@@ -20,7 +20,7 @@ passport.use(new GoogleStrategy({
     user = await User.create({
       name: profile.displayName,
       email: profile.emails[0].value,
-      password: 'google-oauth',
+      password: process.env.DEFAULT_OAUTH_PASSWORD || require('crypto').randomBytes(32).toString('hex'),
       role: 'Employee'
     });
     
