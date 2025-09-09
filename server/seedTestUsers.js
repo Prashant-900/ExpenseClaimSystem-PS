@@ -43,13 +43,15 @@ const createTestUsers = async () => {
         name: 'Jane Faculty',
         email: 'jane@faculty.iitmandi.ac.in',
         password: '123456',
-        role: 'Faculty'
+        role: 'Faculty',
+        department: 'SCEE'
       },
       {
         name: 'John Student',
         email: 'john@students.iitmandi.ac.in',
         password: '123456',
         role: 'Student',
+        department: 'SCEE',
         facultyEmail: 'jane@faculty.iitmandi.ac.in'
       }
     ];
