@@ -8,16 +8,24 @@ const reimbursementSchema = new mongoose.Schema({
   
   // Basic expense details
   title: { type: String, required: true },
-  expenseType: { type: String, enum: ['Travel', 'Meal', 'Accommodation', 'Office Supplies', 'Misc'], required: true },
+  expenseType: { type: String, enum: [
+    'Travel – Airfare', 'Travel – Accommodation', 'Travel – Meals & Per Diem',
+    'Local Transportation (Taxi, Ride-share, Mileage)', 'Conference Fees',
+    'Research Equipment/Supplies', 'Lab Consumables', 'Books/Subscriptions/Software',
+    'Student Activity Support', 'Guest Lecturer Honorarium', 'Office Supplies', 'Miscellaneous / Other'
+  ], required: true },
   expenseDate: { type: Date, required: true },
   amount: { type: Number, required: true },
   description: { type: String, required: true },
   receipt: { type: String },
   images: [{ type: String }],
+  country: { type: String, default: 'IN' },
   
   // Travel specific fields
-  origin: { type: String },
-  destination: { type: String },
+  originState: { type: String },
+  originCity: { type: String },
+  destinationState: { type: String },
+  destinationCity: { type: String },
   travelMode: { type: String },
   distance: { type: Number },
   startDate: { type: Date },
@@ -31,7 +39,8 @@ const reimbursementSchema = new mongoose.Schema({
   
   // Accommodation specific fields
   hotelName: { type: String },
-  location: { type: String },
+  accommodationState: { type: String },
+  accommodationCity: { type: String },
   checkinDate: { type: Date },
   checkoutDate: { type: Date },
   nightsStayed: { type: Number },
@@ -47,15 +56,18 @@ const reimbursementSchema = new mongoose.Schema({
   
   status: { 
     type: String, 
-    enum: ['Pending - Faculty', 'Approved - Audit', 'Approved - Finance', 'Rejected', 'Completed', 'Sent Back - Faculty', 'Sent Back - Audit', 'Sent Back - Finance'], 
-    default: 'Pending - Faculty' 
+    enum: ['Draft', 'Submitted', 'Pending - Faculty Review', 'Pending - Audit Review', 'Pending - Finance Review', 
+           'Faculty Approved', 'Audit Approved', 'Finance Approved', 'Completed', 'Rejected',
+           'Sent Back - Faculty', 'Sent Back - Audit', 'Sent Back - Finance'], 
+    default: 'Pending - Faculty Review' 
   },
   facultyRemarks: { type: String },
   auditRemarks: { type: String },
   financeRemarks: { type: String },
   approvedByFaculty: { type: Date },
   approvedByAudit: { type: Date },
-  approvedByFinance: { type: Date }
+  approvedByFinance: { type: Date },
+  facultyEmail: { type: String }
 }, { timestamps: true });
 
 export default mongoose.model('Reimbursement', reimbursementSchema);

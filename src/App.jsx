@@ -1,15 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useAuthStore } from './auth/authStore';
-import ProtectedRoute from './routes/ProtectedRoute';
-import LoginPage from './pages/LoginPage';
-import Register from './components/Auth/Register';
-import AuthSuccessPage from './pages/AuthSuccessPage';
-import DashboardPage from './pages/DashboardPage';
-import EditRequestPage from './pages/EditRequestPage';
-import SubmitRequestPage from './pages/SubmitRequestPage';
-import ProfilePage from './pages/ProfilePage';
-import ViewProfilePage from './pages/ViewProfilePage';
+import { useAuthStore } from './features/authentication/authStore';
+import ProtectedRoute from './shared/components/ProtectedRoute';
+import LoginPage from './features/authentication/pages/LoginPage';
+import Register from './features/authentication/components/Register';
+import GoogleAuthSuccessPage from './features/authentication/pages/GoogleAuthSuccessPage';
+import DashboardPage from './features/dashboard/pages/DashboardPage';
+import ReimbursementEditPage from './features/reimbursements/pages/ReimbursementEditPage';
+import ReimbursementSubmitPage from './features/reimbursements/pages/ReimbursementSubmitPage';
+import ExpenseClaimPage from './features/expense-reports/pages/ExpenseClaimPage';
+import ExpenseDraftEditPage from './features/expense-reports/pages/ExpenseDraftEditPage';
+import ExpenseReportCreatePage from './features/expense-reports/pages/ExpenseReportCreatePage';
+import ExpenseFormPage from './features/expense-reports/pages/ExpenseFormPage';
+import ExpenseReportViewPage from './features/expense-reports/pages/ExpenseReportViewPage';
+import ProfilePage from './features/profile/pages/ProfilePage';
+import UserProfileViewPage from './features/profile/pages/UserProfileViewPage';
 
 
 import { ROLES } from './utils/roles';
@@ -38,7 +43,7 @@ function App() {
           
           <Route 
             path="/auth/success" 
-            element={<AuthSuccessPage />} 
+            element={<GoogleAuthSuccessPage />} 
           />
           
           <Route 
@@ -54,7 +59,52 @@ function App() {
             path="/submit" 
             element={
               <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
-                <SubmitRequestPage />
+                <ReimbursementSubmitPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/expense-claim" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <ExpenseClaimPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/drafts" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/edit-draft/:id" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <ExpenseDraftEditPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/create-report" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <ExpenseFormPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/expense-report/:id" 
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+                <ExpenseReportViewPage />
               </ProtectedRoute>
             } 
           />
@@ -135,7 +185,7 @@ function App() {
             path="/edit-request/:id" 
             element={
               <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
-                <EditRequestPage />
+                <ReimbursementEditPage />
               </ProtectedRoute>
             } 
           />
@@ -162,7 +212,7 @@ function App() {
             path="/profile/:userId" 
             element={
               <ProtectedRoute>
-                <ViewProfilePage />
+                <UserProfileViewPage />
               </ProtectedRoute>
             } 
           />

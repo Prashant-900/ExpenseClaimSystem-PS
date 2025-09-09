@@ -8,7 +8,13 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['Student', 'Faculty', 'Audit', 'Finance', 'Admin'], default: 'Student' },
   facultyEmail: { type: String },
   phone: { type: String },
-  department: { type: String },
+  department: { 
+    type: String, 
+    enum: ['SCEE', 'SMME'],
+    required: function() {
+      return ['Student', 'Faculty'].includes(this.role);
+    }
+  },
   bio: { type: String },
   profileImage: { type: String }
 }, { timestamps: true });
