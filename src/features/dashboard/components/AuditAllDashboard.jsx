@@ -13,8 +13,28 @@ const AuditAllDashboard = () => {
 
   const fetchReports = async () => {
     try {
-      const { data } = await API.get('/expense-reports?all=true');
-      setReports(data);
+      // Fetch both processed expense reports and reimbursements
+      const [expenseReportResponse, reimbursementResponse] = await Promise.all([
+        API.get('/expense-reports?all=true'),
+        API.get('/reimbursements')
+      ]);
+      
+      const expenseReports = expenseReportResponse.data;
+      const processedReimbursements = reimbursementResponse.data.filter(req => 
+        ['Pending - Finance Review', 'Completed', 'Rejected'].includes(req.status) && 
+        (req.auditRemarks || req.status !== 'Pending - Finance Review')
+      );
+      
+      // Combine both types with type identifier
+      const allReports = [
+        ...expenseReports.map(report => ({ ...report, type: 'expense-report' })),
+        ...processedReimbursements.map(req => ({ ...req, type: 'reimbursement' }))
+      ];
+      
+      // Sort by creation date
+      allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setReports(allReports);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
     } finally {
@@ -39,73 +59,98 @@ const AuditAllDashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {reports.map((report) => (
-            <div key={report._id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {report.submitterId?.profileImage ? (
-                      <img 
-                        src={report.submitterId.profileImage} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-500 text-lg font-medium">
-                        {(report.submitterId?.name || report.facultyName || report.studentName)?.charAt(0)?.toUpperCase()}
-                      </span>
-                    )}
+          {reports.map((report) => {
+            const isReimbursement = report.type === 'reimbursement';
+            const submitter = isReimbursement ? 
+              (report.studentId || report.facultySubmitterId) : 
+              report.submitterId;
+            const submitterRole = isReimbursement ? 
+              (report.studentId ? 'Student' : 'Faculty') : 
+              report.submitterRole;
+            
+            return (
+              <div key={report._id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {submitter?.profileImage ? (
+                        <img 
+                          src={submitter.profileImage} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-500 text-lg font-medium">
+                          {submitter?.name?.charAt(0)?.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        <button
+                          onClick={() => window.location.href = `/profile/${submitter?._id}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {submitter?.name}
+                        </button>
+                        {' - '}
+                        {isReimbursement ? report.title : report.purposeOfExpense}
+                      </h3>
+                      <p className="text-gray-600 mt-1">
+                        {isReimbursement ? report.expenseType : report.reportType} ({submitterRole})
+                      </p>
+                      {isReimbursement ? (
+                        <p className="text-sm text-gray-500">
+                          Date: {new Date(report.expenseDate).toLocaleDateString()}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Period: {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-green-600">
+                      {isReimbursement ? `$${report.amount}` : `₹${report.totalAmount?.toFixed(2) || '0.00'}`}
+                    </p>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      report.status === 'Audit Approved' || report.status === 'Finance Approved' || report.status === 'Completed' ? 
+                        'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {report.status}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
+                  <div>
+                    <span className="font-medium">Type:</span> {isReimbursement ? 'Reimbursement' : 'Expense Report'}
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      <button
-                        onClick={() => window.location.href = `/profile/${report.submitterId?._id}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        {report.submitterId?.name || report.facultyName || report.studentName}
-                      </button>
-                      {' - '}{report.purposeOfExpense}
-                    </h3>
-                    <p className="text-gray-600 mt-1">{report.reportType} ({report.submitterRole})</p>
-                    <p className="text-sm text-gray-500">
-                      Period: {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
-                    </p>
+                    <span className="font-medium">{isReimbursement ? 'Images' : 'Items'}:</span> 
+                    {isReimbursement ? (report.images?.length || 0) : (report.items?.length || 0)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Processed:</span> 
+                    {isReimbursement ? 
+                      (report.approvedByAudit ? new Date(report.approvedByAudit).toLocaleDateString() : 'N/A') :
+                      (report.auditApproval?.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A')
+                    }
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">₹{report.totalAmount?.toFixed(2) || '0.00'}</p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    report.status === 'Audit Approved' ? 'bg-green-100 text-green-800' :
-                    report.status === 'Finance Approved' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {report.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
-                <div>
-                  <span className="font-medium">Department:</span> {report.department}
-                </div>
-                <div>
-                  <span className="font-medium">Items:</span> {report.items?.length || 0}
-                </div>
-                <div>
-                  <span className="font-medium">Processed:</span> {report.auditApproval?.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A'}
-                </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDetailModal(report._id)}
-                  className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-                >
-                  View Details
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDetailModal(report._id)}
+                    className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+                  >
+                    View Details
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

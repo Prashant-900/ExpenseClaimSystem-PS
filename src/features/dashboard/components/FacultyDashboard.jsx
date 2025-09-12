@@ -12,22 +12,24 @@ const FacultyDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [studentResponse, facultyResponse] = await Promise.all([
+      const [studentReimbursements, facultyReimbursements, expenseReports] = await Promise.all([
         API.get('/reimbursements/student-requests'),
-        API.get('/reimbursements/my-requests')
+        API.get('/reimbursements/my-requests'),
+        API.get('/expense-reports')
       ]);
       
-      const studentData = studentResponse.data;
-      const facultyData = facultyResponse.data;
+      const studentData = studentReimbursements.data;
+      const facultyReimbursementData = facultyReimbursements.data;
+      const facultyExpenseReports = expenseReports.data.filter(r => r.submitterId && r.submitterRole === 'Faculty');
       
-      // Student requests stats
-      const studentPending = studentData.filter(r => r.status === 'Pending - Faculty').length;
-      const studentApproved = studentData.filter(r => r.facultyRemarks && (r.status === 'Pending - Audit' || r.status === 'Pending - Finance' || r.status === 'Completed')).length;
+      // Student requests stats (reimbursements only)
+      const studentPending = studentData.filter(r => r.status === 'Pending - Faculty Review').length;
+      const studentApproved = studentData.filter(r => r.facultyRemarks && (r.status === 'Pending - Audit Review' || r.status === 'Pending - Finance Review' || r.status === 'Completed')).length;
       const studentRejected = studentData.filter(r => r.status === 'Rejected' && r.facultyRemarks).length;
       const studentSentBack = studentData.filter(r => r.status === 'Sent Back - Faculty').length;
       
-      // Faculty's own requests stats
-      const myRequests = facultyData.length;
+      // Faculty's own requests stats (both reimbursements and expense reports)
+      const myRequests = facultyReimbursementData.length + facultyExpenseReports.length;
       
       setStats({ 
         studentPending, 
@@ -69,7 +71,7 @@ const FacultyDashboard = () => {
               </div>
               <div className="bg-white p-6 rounded-md shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-600">Approved</h3>
+                  <h3 className="text-sm font-medium text-gray-600">Approved & Forwarded</h3>
                   <HiOutlineCheckCircle className="w-6 h-6 text-emerald-600" />
                 </div>
                 <p className="text-3xl font-bold text-gray-800 mt-2">{stats.studentApproved || 0}</p>

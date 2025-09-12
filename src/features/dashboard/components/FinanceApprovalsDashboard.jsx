@@ -17,10 +17,26 @@ const FinanceApprovalsPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
-      const pendingRequests = data.filter(r => r.status === 'Approved - Finance');
-      setRequests(pendingRequests);
-      setFilteredRequests(pendingRequests);
+      // Fetch both reimbursements and expense reports pending finance approval
+      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
+        API.get('/reimbursements?pending=true'),
+        API.get('/expense-reports')
+      ]);
+      
+      const reimbursements = reimbursementResponse.data.filter(r => r.status === 'Pending - Finance Review');
+      const expenseReports = expenseReportResponse.data.filter(r => r.status === 'Audit Approved');
+      
+      // Combine both types with type identifier
+      const allRequests = [
+        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
+        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
+      ];
+      
+      // Sort by creation date
+      allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setRequests(allRequests);
+      setFilteredRequests(allRequests);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
@@ -69,10 +85,19 @@ const FinanceApprovalsPage = () => {
 
   const confirmAction = async () => {
     try {
-      await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
-        status: actionModal.action,
-        remarks
-      });
+      const request = requests.find(r => r._id === actionModal.requestId);
+      
+      if (request.type === 'reimbursement') {
+        await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
+          status: actionModal.action,
+          remarks
+        });
+      } else if (request.type === 'expense-report') {
+        await API.patch(`/expense-reports/${actionModal.requestId}/approve`, {
+          action: actionModal.action,
+          remarks
+        });
+      }
       
       setActionModal(null);
       setRemarks('');
@@ -89,8 +114,8 @@ const FinanceApprovalsPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Final Approvals</h1>
-        <p className="text-gray-600">Manager-approved requests awaiting final approval</p>
+        <h1 className="text-2xl font-bold text-gray-900">Finance Approvals</h1>
+        <p className="text-gray-600">Audit-approved requests awaiting finance approval</p>
       </div>
 
       <SearchAndFilter 
@@ -113,7 +138,7 @@ const FinanceApprovalsPage = () => {
           </div>
           <div className="space-y-6">
             {filteredRequests.map((request) => (
-              <ExpenseCard
+              <RequestCard
                 key={request._id}
                 request={request}
                 onAction={handleAction}

@@ -8,13 +8,30 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
-  const canApprove = showActions && ((userRole === 'Audit' && request.status === 'Pending - Audit') ||
-                    (userRole === 'Finance' && request.status === 'Pending - Finance'));
-  const canSendBack = showActions && ((userRole === 'Audit' && request.status === 'Pending - Audit') ||
-                     (userRole === 'Finance' && request.status === 'Pending - Finance'));
+  // Handle both reimbursement and expense report types
+  const isReimbursement = request.type === 'reimbursement';
+  const isExpenseReport = request.type === 'expense-report';
+  
+  const canApprove = showActions && (
+    (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
+    (userRole === 'Audit' && (request.status === 'Pending - Audit Review' || request.status === 'Faculty Approved')) ||
+    (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
+  );
+  const canSendBack = showActions && (
+    (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
+    (userRole === 'Audit' && (request.status === 'Pending - Audit Review' || request.status === 'Faculty Approved')) ||
+    (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
+  );
 
-  const submitter = request.studentId || request.facultySubmitterId;
-  const submitterRole = request.studentId ? 'Student' : 'Faculty';
+  // Get submitter info based on request type
+  let submitter, submitterRole;
+  if (isReimbursement) {
+    submitter = request.studentId || request.facultySubmitterId;
+    submitterRole = request.studentId ? 'Student' : 'Faculty';
+  } else if (isExpenseReport) {
+    submitter = request.submitterId;
+    submitterRole = request.submitterRole;
+  }
 
   const openProfile = () => {
     if (submitter) {
@@ -60,12 +77,40 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
       <div className="card-body">
         <div className="flex justify-between items-start mb-4">
         <div>
-          {request.title && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.title}</h2>}
-          <h3 className="text-lg font-semibold">${request.amount}</h3>
-          <p className="text-gray-600">{request.description}</p>
-          <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
-          {request.expenseDate && (
-            <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
+          {/* Display title/purpose based on request type */}
+          {isReimbursement && request.title && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.title}</h2>}
+          {isExpenseReport && request.purposeOfExpense && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.purposeOfExpense}</h2>}
+          
+          {/* Display amount */}
+          <h3 className="text-lg font-semibold">
+            {isReimbursement ? `$${request.amount}` : `₹${request.totalAmount?.toFixed(2) || '0.00'}`}
+          </h3>
+          
+          {/* Display description */}
+          <p className="text-gray-600">
+            {isReimbursement ? request.description : request.reportType}
+          </p>
+          
+          {/* Display type and date */}
+          {isReimbursement && (
+            <>
+              <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
+              {request.expenseDate && (
+                <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
+              )}
+            </>
+          )}
+          
+          {isExpenseReport && (
+            <>
+              <p className="text-sm text-gray-500">Department: {request.department}</p>
+              <p className="text-sm text-gray-500">Items: {request.items?.length || 0}</p>
+              {request.expensePeriodStart && request.expensePeriodEnd && (
+                <p className="text-sm text-gray-500">
+                  Period: {new Date(request.expensePeriodStart).toLocaleDateString()} - {new Date(request.expensePeriodEnd).toLocaleDateString()}
+                </p>
+              )}
+            </>
           )}
           
           {/* Dynamic fields based on expense type */}
@@ -96,7 +141,8 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
             </div>
           )}
           
-          {request.images && request.images.length > 0 && (
+          {/* Display images based on request type */}
+          {isReimbursement && request.images && request.images.length > 0 && (
             <div className="mt-3">
               <p className="text-sm font-medium text-gray-700 mb-2">Receipt Images:</p>
               <div className="flex gap-2 flex-wrap">
@@ -112,15 +158,41 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
               </div>
             </div>
           )}
+          
+          {isExpenseReport && request.items && request.items.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Expense Items:</p>
+              <div className="space-y-1">
+                {request.items.slice(0, 3).map((item, index) => (
+                  <p key={index} className="text-sm text-gray-600">
+                    {item.description} - ₹{item.amountInINR?.toFixed(2) || '0.00'}
+                  </p>
+                ))}
+                {request.items.length > 3 && (
+                  <p className="text-sm text-gray-500">...and {request.items.length - 3} more items</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <StatusBadge status={request.status} />
       </div>
       
-      {(request.auditRemarks || request.financeRemarks) && (
+      {/* Display remarks based on request type */}
+      {isReimbursement && (request.auditRemarks || request.financeRemarks) && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <h4 className="font-medium text-sm mb-2">Remarks:</h4>
           {request.auditRemarks && <p className="text-sm">Audit: {request.auditRemarks}</p>}
           {request.financeRemarks && <p className="text-sm">Finance: {request.financeRemarks}</p>}
+        </div>
+      )}
+      
+      {isExpenseReport && (request.facultyApproval?.remarks || request.auditApproval?.remarks || request.financeApproval?.remarks) && (
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <h4 className="font-medium text-sm mb-2">Remarks:</h4>
+          {request.facultyApproval?.remarks && <p className="text-sm">Faculty: {request.facultyApproval.remarks}</p>}
+          {request.auditApproval?.remarks && <p className="text-sm">Audit: {request.auditApproval.remarks}</p>}
+          {request.financeApproval?.remarks && <p className="text-sm">Finance: {request.financeApproval.remarks}</p>}
         </div>
       )}
       

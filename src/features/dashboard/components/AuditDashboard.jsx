@@ -14,8 +14,22 @@ const AuditDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements?pending=true');
-      setRequests(data);
+      // Fetch both reimbursement requests and expense reports pending audit
+      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
+        API.get('/reimbursements?pending=true'),
+        API.get('/expense-reports')
+      ]);
+      
+      const reimbursements = reimbursementResponse.data;
+      const expenseReports = expenseReportResponse.data.filter(report => report.status === 'Faculty Approved');
+      
+      // Combine both types of requests
+      const allRequests = [
+        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
+        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
+      ];
+      
+      setRequests(allRequests);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
@@ -30,10 +44,19 @@ const AuditDashboard = () => {
 
   const confirmAction = async () => {
     try {
-      await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
-        status: actionModal.action,
-        remarks
-      });
+      const request = requests.find(r => r._id === actionModal.requestId);
+      
+      if (request.type === 'reimbursement') {
+        await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
+          status: actionModal.action,
+          remarks
+        });
+      } else if (request.type === 'expense-report') {
+        await API.patch(`/expense-reports/${actionModal.requestId}/approve`, {
+          action: actionModal.action,
+          remarks
+        });
+      }
       
       setActionModal(null);
       setRemarks('');
