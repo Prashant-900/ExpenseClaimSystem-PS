@@ -12,16 +12,27 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const isReimbursement = request.type === 'reimbursement';
   const isExpenseReport = request.type === 'expense-report';
   
+  // Debug: Log the request details
+  console.log('Request details:', {
+    id: request._id,
+    status: request.status,
+    userRole,
+    showActions,
+    type: request.type
+  });
+  
   const canApprove = showActions && (
     (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
-    (userRole === 'Audit' && (request.status === 'Pending - Audit Review' || request.status === 'Faculty Approved')) ||
+    (userRole === 'Audit' && (
+      request.status === 'Pending - Audit Review' || 
+      request.status === 'Faculty Approved' ||
+      (request.status === 'Submitted' && request.submitterRole === 'Faculty')
+    )) ||
     (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
   );
-  const canSendBack = showActions && (
-    (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
-    (userRole === 'Audit' && (request.status === 'Pending - Audit Review' || request.status === 'Faculty Approved')) ||
-    (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
-  );
+  const canSendBack = canApprove;
+  
+  console.log('Can approve:', canApprove, 'for status:', request.status, 'userRole:', userRole);
 
   // Get submitter info based on request type
   let submitter, submitterRole;
@@ -196,33 +207,51 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
         </div>
       )}
       
-        {canApprove && (
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => onAction(request._id, 'approve')}
-              className="flex items-center gap-2 btn-success"
-            >
-              <HiOutlineCheck className="w-4 h-4" />
-              Approve
-            </button>
-            <button
-              onClick={() => onAction(request._id, 'reject')}
-              className="flex items-center gap-2 btn-danger"
-            >
-              <HiOutlineXMark className="w-4 h-4" />
-              Reject
-            </button>
-            {canSendBack && (
+        <div className="flex gap-3 mt-4">
+          {/* View Details Button */}
+          <button
+            onClick={() => {
+              if (isExpenseReport) {
+                window.open(`/expense-report/${request._id}`, '_blank');
+              } else {
+                // For reimbursements, show details in modal or new page
+                console.log('View reimbursement details:', request._id);
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+          >
+            View Details
+          </button>
+          
+          {/* Action Buttons */}
+          {canApprove && (
+            <>
               <button
-                onClick={() => onAction(request._id, 'sendback')}
-                className="flex items-center gap-2 btn-warning"
+                onClick={() => onAction(request._id, 'approve')}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
               >
-                <HiOutlineArrowUturnLeft className="w-4 h-4" />
-                Send Back
+                <HiOutlineCheck className="w-4 h-4 inline mr-1" />
+                Approve
               </button>
-            )}
-          </div>
-        )}
+              <button
+                onClick={() => onAction(request._id, 'reject')}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium"
+              >
+                <HiOutlineXMark className="w-4 h-4 inline mr-1" />
+                Reject
+              </button>
+              {canSendBack && (
+                <button
+                  onClick={() => onAction(request._id, 'sendback')}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-medium"
+                >
+                  <HiOutlineArrowUturnLeft className="w-4 h-4 inline mr-1" />
+                  Send Back
+                </button>
+              )}
+            </>
+          )}
+        </div>
         
 
       </div>

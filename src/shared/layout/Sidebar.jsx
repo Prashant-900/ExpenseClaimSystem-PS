@@ -91,7 +91,7 @@ const Sidebar = () => {
       
       <div className="p-4 border-t border-gray-600">
         <div className="text-xs text-gray-400">
-          © 2024 ExpenseClaim System
+          © 2025 ExpenseClaim System
         </div>
       </div>
     </div>

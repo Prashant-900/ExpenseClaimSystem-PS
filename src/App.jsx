@@ -103,7 +103,7 @@ function App() {
           <Route 
             path="/expense-report/:id" 
             element={
-              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
+              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY, ROLES.AUDIT, ROLES.FINANCE]}>
                 <ExpenseReportViewPage />
               </ProtectedRoute>
             } 

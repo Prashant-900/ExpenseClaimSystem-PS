@@ -14,21 +14,39 @@ const AuditDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      // Fetch both reimbursement requests and expense reports pending audit
-      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
-        API.get('/reimbursements?pending=true'),
-        API.get('/expense-reports')
-      ]);
+      console.log('=== AUDIT DASHBOARD DEBUG ===');
+      
+      const reimbursementResponse = await API.get('/reimbursements?pending=true');
+      console.log('Reimbursements API response:', reimbursementResponse.data);
+      
+      const expenseReportResponse = await API.get('/expense-reports');
+      console.log('Expense Reports API response:', expenseReportResponse.data);
+      
+      // Test: Get ALL expense reports to see what exists
+      const allReportsResponse = await API.get('/expense-reports?all=true');
+      console.log('ALL Expense Reports:', allReportsResponse.data);
       
       const reimbursements = reimbursementResponse.data;
-      const expenseReports = expenseReportResponse.data.filter(report => report.status === 'Faculty Approved');
+      const expenseReports = expenseReportResponse.data;
       
-      // Combine both types of requests
+      console.log('Reimbursements count:', reimbursements.length);
+      console.log('Expense Reports count:', expenseReports.length);
+      
+      if (expenseReports.length > 0) {
+        console.log('Expense Reports details:', expenseReports.map(r => ({
+          id: r._id,
+          status: r.status,
+          submitter: r.submitterRole,
+          submitterName: r.submitterId?.name
+        })));
+      }
+      
       const allRequests = [
         ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
         ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
       ];
       
+      console.log('Total combined requests:', allRequests.length);
       setRequests(allRequests);
     } catch (error) {
       console.error('Failed to fetch requests:', error);

@@ -6,10 +6,12 @@ const StatusBadge = ({ status }) => {
     switch (status) {
       case 'Draft':
         return 'Draft - Not Submitted';
+      case 'Submitted':
+        return 'Pending Faculty Review';
       case 'Faculty Approved':
-        return 'Sent to Audit';
+        return 'Pending Audit Review';
       case 'Audit Approved':
-        return 'Sent to Finance';
+        return 'Pending Finance Review';
       case 'Finance Approved':
         return 'Completed';
       default:

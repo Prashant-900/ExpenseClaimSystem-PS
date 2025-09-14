@@ -78,8 +78,14 @@ export const getExpenseReports = async (req, res) => {
         // Audit-all endpoint: only processed reports (exclude pending)
         query.status = { $in: ['Audit Approved', 'Finance Approved', 'Rejected'] };
       } else {
-        // Default audit endpoint: only pending reports
-        query.status = 'Faculty Approved';
+        // Default audit endpoint: ALL reports that need audit review
+        query = {
+          $or: [
+            { status: 'Faculty Approved' }, // Faculty reports
+            { status: 'Submitted', submitterRole: 'Faculty' } // Just in case
+          ]
+        };
+        console.log('Audit query:', query);
       }
     } else if (req.user.role === 'Finance') {
       if (req.query.processed === 'true') {
@@ -95,6 +101,11 @@ export const getExpenseReports = async (req, res) => {
       .populate('submitterId', 'name email department role')
       .populate('facultyId', 'name email department')
       .sort({ createdAt: -1 });
+    
+    if (req.user.role === 'Audit') {
+      console.log('Found reports for audit:', reports.length);
+      console.log('Report details:', reports.map(r => ({ id: r._id, status: r.status, submitter: r.submitterRole, submitterId: r.submitterId?.name })));
+    }
     
     // Add profile images
     const reportsWithImages = await Promise.all(reports.map(async (report) => {
@@ -361,6 +372,31 @@ export const deleteExpenseItem = async (req, res) => {
     await report.save();
     
     res.json(report);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// DEBUG: Test endpoint to see all reports
+export const getAllReportsDebug = async (req, res) => {
+  try {
+    const allReports = await ExpenseReport.find({})
+      .populate('submitterId', 'name email role')
+      .sort({ createdAt: -1 });
+    
+    console.log('=== ALL REPORTS DEBUG ===');
+    console.log('Total reports:', allReports.length);
+    allReports.forEach(report => {
+      console.log(`ID: ${report._id}, Status: ${report.status}, Submitter: ${report.submitterRole}, Name: ${report.submitterId?.name}`);
+    });
+    
+    res.json(allReports.map(r => ({
+      id: r._id,
+      status: r.status,
+      submitterRole: r.submitterRole,
+      submitterName: r.submitterId?.name,
+      createdAt: r.createdAt
+    })));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
