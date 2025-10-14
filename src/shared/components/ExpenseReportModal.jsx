@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { getCountryByCode, convertCurrency, formatCurrency } from '../../utils/countryStateData';
+import { generateExpenseReportPDF } from '../../utils/pdfGenerator';
+import { HiOutlinePrinter } from 'react-icons/hi2';
 
 const ExpenseReportModal = ({ request, isOpen, onClose }) => {
   if (!isOpen || !request) return null;
@@ -34,6 +36,20 @@ const ExpenseReportModal = ({ request, isOpen, onClose }) => {
     });
   };
 
+  const handlePrintReport = async () => {
+    try {
+      await generateExpenseReportPDF(request);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  // Check if report is in a final state
+  const isReportFinal = request.status === 'Finance Approved' || 
+                       request.status === 'Completed' || 
+                       request.status === 'Rejected';
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -44,12 +60,24 @@ const ExpenseReportModal = ({ request, isOpen, onClose }) => {
               <h1 className="text-2xl font-bold">Expense Reimbursement Report</h1>
               <p className="text-blue-100 mt-1">Report ID: {request._id}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-gray-200 text-2xl font-bold"
-            >
-              ×
-            </button>
+            <div className="flex items-center gap-3">
+              {isReportFinal && (
+                <button
+                  onClick={handlePrintReport}
+                  className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white font-medium rounded-lg hover:bg-opacity-30 transition-colors"
+                  title="Download PDF Report"
+                >
+                  <HiOutlinePrinter className="w-5 h-5" />
+                  Print
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="text-white hover:text-gray-200 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
 

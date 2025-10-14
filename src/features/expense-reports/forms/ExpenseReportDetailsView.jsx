@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
 import ExpenseItemViewModal from '../components/ExpenseItemViewModal';
+import { generateExpenseReportPDF } from '../../../utils/pdfGenerator';
+import { HiOutlinePrinter } from 'react-icons/hi2';
 
 const ExpenseReportDetails = () => {
   const { id } = useParams();
@@ -11,6 +13,7 @@ const ExpenseReportDetails = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [viewingItem, setViewingItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchReport();
@@ -18,10 +21,17 @@ const ExpenseReportDetails = () => {
 
   const fetchReport = async () => {
     try {
+      console.log('Fetching report with ID:', id);
       const { data } = await API.get(`/expense-reports/${id}`);
+      console.log('Fetched report data:', data);
       setReport(data);
+      setError(null);
     } catch (error) {
       console.error('Failed to fetch report:', error);
+      console.error('Error details:', error.response?.data);
+      // Set error state
+      setError(error.response?.data?.message || error.message || 'Failed to fetch report');
+      setReport(null);
     } finally {
       setIsLoading(false);
     }
@@ -102,13 +112,52 @@ const ExpenseReportDetails = () => {
     }
   };
 
+  const handlePrintReport = async () => {
+    if (!report) {
+      alert('No report data available to generate PDF.');
+      return;
+    }
+    
+    try {
+      console.log('Generating PDF for report:', report);
+      await generateExpenseReportPDF(report);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Error loading report</div>
+        <div className="text-gray-600">{error}</div>
+        <button 
+          onClick={fetchReport}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   if (!report) {
     return <div className="text-center py-12">Report not found</div>;
   }
+
+  // Check if report is in a final state (completed or rejected)
+  const isReportFinal = report.status === 'Finance Approved' || 
+                       report.status === 'Completed' || 
+                       report.status === 'Rejected' ||
+                       (report.financeApproval?.approved === true) ||
+                       (report.financeApproval?.approved === false) ||
+                       (report.auditApproval?.approved === false) ||
+                       (report.facultyApproval?.approved === false);
 
   return (
     <div className="space-y-6">
@@ -120,14 +169,28 @@ const ExpenseReportDetails = () => {
               <h1 className="text-3xl font-bold text-gray-900">Expense Report {report.reportId}</h1>
               <p className="text-gray-600 mt-2">{report.purposeOfExpense}</p>
             </div>
-            <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-              report.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
-              report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' :
-              report.status === 'Completed' ? 'bg-green-100 text-green-800' :
-              'bg-yellow-100 text-yellow-800'
-            }`}>
-              {report.status}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                report.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
+                report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' :
+                report.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                report.status === 'Finance Approved' ? 'bg-green-100 text-green-800' :
+                report.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {report.status}
+              </span>
+              {isReportFinal && (
+                <button
+                  onClick={handlePrintReport}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  title="Download PDF Report"
+                >
+                  <HiOutlinePrinter className="w-5 h-5" />
+                  Print Report
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -136,7 +199,11 @@ const ExpenseReportDetails = () => {
           <h3 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-300 pb-2">1. Faculty & Report Information</h3>
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3">
-              <div><strong>Name:</strong> {report.facultyName || report.studentName || report.submitterId?.name}</div>
+              <div><strong>Name:</strong> {
+                report.submitterRole === 'Student' 
+                  ? (report.studentName || report.submitterId?.name) 
+                  : (report.submitterId?.name || report.facultyName)
+              }</div>
               <div><strong>Role:</strong> {report.submitterRole}</div>
               <div><strong>Department:</strong> {report.department}</div>
               {report.studentId && <div><strong>Student ID:</strong> {report.studentId}</div>}
@@ -305,7 +372,7 @@ const ExpenseReportDetails = () => {
                   </div>
                   {report.facultyApproval && (
                     <div className="mt-2 text-sm">
-                      <p className="text-gray-600">By: {report.facultyName} on {new Date(report.facultyApproval.date).toLocaleDateString()}</p>
+                      <p className="text-gray-600">By: {report.facultyApproval.approvedBy || report.facultyName} on {new Date(report.facultyApproval.date).toLocaleDateString()}</p>
                       {report.facultyApproval.remarks && (
                         <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.facultyApproval.remarks}</p>
                       )}
@@ -342,6 +409,9 @@ const ExpenseReportDetails = () => {
                   {report.auditApproval && (
                     <div className="mt-2 text-sm">
                       <p className="text-gray-600">On {new Date(report.auditApproval.date).toLocaleDateString()}</p>
+                      {report.auditApproval.approvedBy && (
+                        <p className="text-gray-600">by {report.auditApproval.approvedBy}</p>
+                      )}
                       {report.auditApproval.remarks && (
                         <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.auditApproval.remarks}</p>
                       )}
@@ -378,6 +448,9 @@ const ExpenseReportDetails = () => {
                   {report.financeApproval && (
                     <div className="mt-2 text-sm">
                       <p className="text-gray-600">On {new Date(report.financeApproval.date).toLocaleDateString()}</p>
+                      {report.financeApproval.approvedBy && (
+                        <p className="text-gray-600">by {report.financeApproval.approvedBy}</p>
+                      )}
                       {report.financeApproval.remarks && (
                         <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.financeApproval.remarks}</p>
                       )}
@@ -396,25 +469,25 @@ const ExpenseReportDetails = () => {
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-gray-300">
                 <span className="font-medium">Total Reported Amount:</span>
-                <span className="font-bold text-lg">${report.totalAmount?.toFixed(2) || '0.00'}</span>
+                <span className="font-bold text-lg">₹{report.totalAmount?.toFixed(2) || '0.00'}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span>Amount Paid by University Credit Card:</span>
-                <span className="font-semibold">${report.universityCardAmount?.toFixed(2) || '0.00'}</span>
+                <span className="font-semibold">₹{report.universityCardAmount?.toFixed(2) || '0.00'}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span>Amount Paid Personally (to be reimbursed):</span>
-                <span className="font-semibold">${report.personalAmount?.toFixed(2) || '0.00'}</span>
+                <span className="font-semibold">₹{report.personalAmount?.toFixed(2) || '0.00'}</span>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between py-1">
                 <span>Non-Reimbursable Amounts:</span>
-                <span className="font-semibold text-red-600">${report.nonReimbursableAmount?.toFixed(2) || '0.00'}</span>
+                <span className="font-semibold text-red-600">₹{report.nonReimbursableAmount?.toFixed(2) || '0.00'}</span>
               </div>
               <div className="flex justify-between py-2 border-t-2 border-gray-400">
                 <span className="font-bold text-lg">Net Reimbursement Requested:</span>
-                <span className="font-bold text-xl text-gray-800">${report.netReimbursement?.toFixed(2) || '0.00'}</span>
+                <span className="font-bold text-xl text-gray-800">₹{report.netReimbursement?.toFixed(2) || '0.00'}</span>
               </div>
             </div>
           </div>

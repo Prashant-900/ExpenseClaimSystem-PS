@@ -122,6 +122,21 @@ export const getExpenseReports = async (req, res) => {
   }
 };
 
+// Helper function to recalculate totals
+const recalculateTotals = (report) => {
+  if (report.items && report.items.length > 0) {
+    report.totalAmount = report.items.reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
+    report.universityCardAmount = report.items
+      .filter(item => item.paymentMethod === 'University Credit Card (P-Card)')
+      .reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
+    report.personalAmount = report.items
+      .filter(item => item.paymentMethod === 'Personal Funds (Reimbursement)')
+      .reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
+    report.netReimbursement = report.personalAmount - (report.nonReimbursableAmount || 0);
+  }
+  return report;
+};
+
 export const getExpenseReportById = async (req, res) => {
   try {
     const report = await ExpenseReport.findById(req.params.id)
@@ -131,6 +146,10 @@ export const getExpenseReportById = async (req, res) => {
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
+    
+    // Recalculate totals to ensure they're correct
+    recalculateTotals(report);
+    await report.save();
     
     res.json(report);
   } catch (error) {
@@ -162,9 +181,9 @@ export const updateExpenseReport = async (req, res) => {
       report[key] = req.body[key];
     });
     
-    // Recalculate total if items are updated
-    if (req.body.items) {
-      report.totalAmount = req.body.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0);
+    // Recalculate totals if items are updated
+    if (req.body.items || report.items.length > 0) {
+      recalculateTotals(report);
     }
     
     await report.save();
@@ -231,41 +250,46 @@ export const approveExpenseReport = async (req, res) => {
     if (req.user.role === 'Faculty' && report.status === 'Submitted') {
       if (action === 'approve') {
         report.status = 'Faculty Approved';
-        report.facultyId = req.user._id;
-        report.facultyName = req.user.name;
-        report.facultyApproval = { approved: true, date: currentDate, remarks };
+        // Only set facultyId and facultyName if not already set (i.e., if student submitted)
+        if (!report.facultyId && report.submitterRole === 'Student') {
+          report.facultyId = req.user._id;
+          report.facultyName = req.user.name;
+        }
+        report.facultyApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.facultyId = req.user._id;
-        report.facultyName = req.user.name;
-        report.facultyApproval = { approved: false, date: currentDate, remarks };
+        // Only set facultyId and facultyName if not already set (i.e., if student submitted)
+        if (!report.facultyId && report.submitterRole === 'Student') {
+          report.facultyId = req.user._id;
+          report.facultyName = req.user.name;
+        }
+        report.facultyApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
         report.status = 'Draft';
-        report.facultyId = req.user._id;
-        report.facultyName = req.user.name;
-        report.facultyApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
+        // Keep original facultyId and facultyName, just record who sent it back
+        report.facultyApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
     } else if (req.user.role === 'Audit' && report.status === 'Faculty Approved') {
       if (action === 'approve') {
         report.status = 'Audit Approved';
-        report.auditApproval = { approved: true, date: currentDate, remarks };
+        report.auditApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.auditApproval = { approved: false, date: currentDate, remarks };
+        report.auditApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
         report.status = 'Submitted';
-        report.auditApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
+        report.auditApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
     } else if (req.user.role === 'Finance' && report.status === 'Audit Approved') {
       if (action === 'approve') {
         report.status = 'Finance Approved';
-        report.financeApproval = { approved: true, date: currentDate, remarks };
+        report.financeApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.financeApproval = { approved: false, date: currentDate, remarks };
+        report.financeApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
         report.status = 'Faculty Approved';
-        report.financeApproval = { approved: false, date: currentDate, remarks, action: 'sendback' };
+        report.financeApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
     } else {
       return res.status(400).json({ message: 'Invalid approval action for current status' });
@@ -299,14 +323,7 @@ export const addExpenseItem = async (req, res) => {
     report.items.push(newItem);
     
     // Recalculate totals
-    report.totalAmount = report.items.reduce((sum, item) => sum + item.amount, 0);
-    report.universityCardAmount = report.items
-      .filter(item => item.paymentMethod === 'University Credit Card (P-Card)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.personalAmount = report.items
-      .filter(item => item.paymentMethod === 'Personal Funds (Reimbursement)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.netReimbursement = report.personalAmount - (report.nonReimbursableAmount || 0);
+    recalculateTotals(report);
     
     await report.save();
     
@@ -332,14 +349,7 @@ export const updateExpenseItem = async (req, res) => {
     Object.assign(item, req.body);
     
     // Recalculate totals
-    report.totalAmount = report.items.reduce((sum, item) => sum + item.amount, 0);
-    report.universityCardAmount = report.items
-      .filter(item => item.paymentMethod === 'University Credit Card (P-Card)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.personalAmount = report.items
-      .filter(item => item.paymentMethod === 'Personal Funds (Reimbursement)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.netReimbursement = report.personalAmount - (report.nonReimbursableAmount || 0);
+    recalculateTotals(report);
     
     await report.save();
     
@@ -360,14 +370,7 @@ export const deleteExpenseItem = async (req, res) => {
     report.items.id(req.params.itemId).remove();
     
     // Recalculate totals
-    report.totalAmount = report.items.reduce((sum, item) => sum + item.amount, 0);
-    report.universityCardAmount = report.items
-      .filter(item => item.paymentMethod === 'University Credit Card (P-Card)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.personalAmount = report.items
-      .filter(item => item.paymentMethod === 'Personal Funds (Reimbursement)')
-      .reduce((sum, item) => sum + item.amount, 0);
-    report.netReimbursement = report.personalAmount - (report.nonReimbursableAmount || 0);
+    recalculateTotals(report);
     
     await report.save();
     

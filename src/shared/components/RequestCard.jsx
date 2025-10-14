@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
 import StatusBadge from './StatusBadge';
 import { getProfileImageUrl } from '../../utils/fileUploadUtils';
-import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
+import { generateReimbursementPDF } from '../../utils/pdfGenerator';
+import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft, HiOutlinePrinter } from 'react-icons/hi2';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
@@ -49,6 +50,28 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
       window.open(`/profile/${submitter._id}`, '_blank');
     }
   };
+
+  const handlePrintRequest = async () => {
+    try {
+      if (isReimbursement) {
+        await generateReimbursementPDF(request);
+      } else {
+        // For expense reports, we'll use a simpler print for now since we have full PDF in the details view
+        alert('Please use the "Print Report" button in the detailed expense report view for a complete PDF.');
+      }
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  // Check if request is in a final state (completed or rejected)
+  const isRequestFinal = request && (
+    request.status === 'Approved - Finance' || 
+    request.status === 'Finance Approved' ||
+    request.status === 'Completed' || 
+    request.status === 'Rejected'
+  );
 
   return (
     <div className="card">
@@ -198,10 +221,10 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
         </div>
       )}
       
-      {isExpenseReport && (request.facultyApproval?.remarks || request.auditApproval?.remarks || request.financeApproval?.remarks) && (
+      {isExpenseReport && (request.auditApproval?.remarks || request.financeApproval?.remarks || (request.facultyApproval?.remarks && request.submitterRole !== 'Faculty')) && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <h4 className="font-medium text-sm mb-2">Remarks:</h4>
-          {request.facultyApproval?.remarks && <p className="text-sm">Faculty: {request.facultyApproval.remarks}</p>}
+          {request.facultyApproval?.remarks && request.submitterRole !== 'Faculty' && <p className="text-sm">Faculty: {request.facultyApproval.remarks}</p>}
           {request.auditApproval?.remarks && <p className="text-sm">Audit: {request.auditApproval.remarks}</p>}
           {request.financeApproval?.remarks && <p className="text-sm">Finance: {request.financeApproval.remarks}</p>}
         </div>
@@ -250,6 +273,18 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
                 </button>
               )}
             </>
+          )}
+          
+          {/* Print Button for Final State Requests */}
+          {isRequestFinal && (
+            <button
+              onClick={handlePrintRequest}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium"
+              title="Download PDF Report"
+            >
+              <HiOutlinePrinter className="w-4 h-4 inline mr-1" />
+              Print
+            </button>
           )}
         </div>
         
