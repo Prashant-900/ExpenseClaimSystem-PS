@@ -3,6 +3,7 @@ import API from '../../../shared/services/axios';
 import { useAuthStore } from '../../../features/authentication/authStore';
 import { countries, getCountryByCode, getStatesByCountry, getCitiesByState, convertCurrency, formatCurrency, calculateDistance } from '../../../utils/countryStateData';
 import { UNIFIED_EXPENSE_CATEGORIES, getAllCategories } from '../../../utils/expenseCategories';
+import { SCHOOLS } from '../../../utils/schools';
 
 const ReimbursementForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
@@ -51,7 +52,7 @@ const ReimbursementForm = ({ onSuccess }) => {
   const expenseTypes = getAllCategories();
   const travelModes = ['Flight', 'Train', 'Taxi', 'Personal Car', 'Bus', 'Other'];
   const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
-  const departments = ['SCEE', 'SMME'];
+  const departments = SCHOOLS.map(s => s.value);
   
   const selectedCountry = getCountryByCode(formData.country);
   const availableStates = getStatesByCountry(formData.country);

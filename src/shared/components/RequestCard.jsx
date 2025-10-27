@@ -25,9 +25,8 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const canApprove = showActions && (
     (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
     (userRole === 'Audit' && (
-      request.status === 'Pending - Audit Review' || 
-      request.status === 'Faculty Approved' ||
-      (request.status === 'Submitted' && request.submitterRole === 'Faculty')
+      request.status === 'Director Approved' || 
+      request.status === 'Dean SRIC Approved'
     )) ||
     (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
   );
@@ -209,7 +208,7 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
             </div>
           )}
         </div>
-        <StatusBadge status={request.status} />
+        <StatusBadge status={request.status} fundType={request.fundType} />
       </div>
       
       {/* Display remarks based on request type */}

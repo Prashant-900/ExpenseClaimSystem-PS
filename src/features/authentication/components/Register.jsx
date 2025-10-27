@@ -3,18 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../authStore';
 import { validateEmail } from '../../../utils/formValidators';
 import GoogleAuth from './GoogleAuth';
+import { SCHOOLS } from '../../../utils/schools';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    department: ''
+    department: '',
+    studentId: ''
   });
   const [error, setError] = useState('');
   const { register, isLoading } = useAuthStore();
   const navigate = useNavigate();
-  const departments = ['SCEE', 'SMME'];
+  const departments = SCHOOLS.map(s => s.value);
+  
+  // Check if email indicates student role
+  const isStudentEmail = formData.email.endsWith('@students.iitmandi.ac.in');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -97,6 +102,21 @@ const Register = () => {
             </select>
           </div>
           
+          {isStudentEmail && (
+            <div>
+              <input
+                type="text"
+                required
+                className="form-input"
+                placeholder="Student ID / Roll Number (e.g., B21001)"
+                value={formData.studentId}
+                onChange={(e) => setFormData({ ...formData, studentId: e.target.value.trim() })}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Enter your official student ID/roll number
+              </p>
+            </div>
+          )}
 
 
           <div>

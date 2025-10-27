@@ -92,7 +92,7 @@ const expenseReportSchema = new mongoose.Schema({
   
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME']
+    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS']
   },
   expenseReportDate: { type: Date, default: Date.now },
   expensePeriodStart: { type: Date, required: true },
@@ -103,6 +103,13 @@ const expenseReportSchema = new mongoose.Schema({
     enum: ['Teaching-related', 'Research-related', 'Administrative/Service', 'Other'], 
     required: true 
   },
+  
+  // Fund Type and Project Information (set by faculty for student submissions)
+  fundType: {
+    type: String,
+    enum: ['Institute Fund', 'Department/School Fund', 'Project Fund', 'Professional Development Allowance']
+  },
+  projectId: { type: String }, // Required when fundType is 'Project Fund'
   
   // Expense Summary
   fundingSource: { 
@@ -130,12 +137,15 @@ const expenseReportSchema = new mongoose.Schema({
   // Status and Approvals
   status: { 
     type: String, 
-    enum: ['Draft', 'Submitted', 'Faculty Approved', 'Audit Approved', 'Finance Approved', 'Completed', 'Rejected'], 
+    enum: ['Draft', 'Submitted', 'Faculty Approved', 'School Chair Approved', 'Dean SRIC Approved', 'Director Approved', 'Audit Approved', 'Finance Approved', 'Completed', 'Rejected'], 
     default: 'Draft' 
   },
-  facultyApproval: { approved: Boolean, date: Date, remarks: String },
-  auditApproval: { approved: Boolean, date: Date, remarks: String },
-  financeApproval: { approved: Boolean, date: Date, remarks: String },
+  facultyApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId },
+  schoolChairApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
+  deanSRICApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
+  directorApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
+  auditApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
+  financeApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
   
   submissionDate: { type: Date }
 }, { timestamps: true });

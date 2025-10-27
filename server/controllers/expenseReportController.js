@@ -1,9 +1,20 @@
 import ExpenseReport from '../models/ExpenseReport.js';
 import User from '../models/User.js';
 import { uploadToMinio } from '../middleware/fileUploadMiddleware.js';
+import { canUserApprove, getNextApproverRole, getSchoolChair, getDeanSRIC, getDirector } from '../utils/approvalWorkflow.js';
 
 export const createExpenseReport = async (req, res) => {
   try {
+    // Validate that students have studentId before creating reports
+    if (req.user.role === 'Student') {
+      if (!req.user.studentId || req.user.studentId.trim() === '') {
+        return res.status(400).json({ 
+          message: 'Student ID is required. Please complete your profile before creating expense reports.',
+          requiresProfileUpdate: true
+        });
+      }
+    }
+    
     const reportData = {
       ...req.body,
       submitterId: req.user._id,
@@ -13,6 +24,7 @@ export const createExpenseReport = async (req, res) => {
     // For student submissions, don't assign specific faculty
     if (req.user.role === 'Student') {
       reportData.department = req.user.department;
+      reportData.studentId = req.user.studentId; // Include student ID in report
     }
     
     const report = await ExpenseReport.create(reportData);
@@ -55,34 +67,91 @@ export const getExpenseReports = async (req, res) => {
     } else if (req.user.role === 'Faculty') {
       // Check if it's pending or reviewed endpoint
       if (req.query.pending === 'true') {
-        // Student reports from same department needing faculty approval
+        // Student reports assigned to this faculty needing faculty approval
         query = { 
-          department: req.user.department, 
+          facultyId: req.user._id,
           submitterRole: 'Student',
           status: 'Submitted' 
         };
       } else if (req.query.reviewed === 'true') {
-        // Student reports from same department already reviewed by this faculty
+        // Student reports assigned to this faculty already reviewed by this faculty
         query = { 
-          department: req.user.department,
-          submitterRole: 'Student',
           facultyId: req.user._id,
-          status: { $in: ['Draft', 'Faculty Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] } 
+          submitterRole: 'Student',
+          status: { $in: ['Draft', 'Faculty Approved', 'School Chair Approved', 'Dean SRIC Approved', 'Director Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] } 
         };
       } else {
         // Default: only faculty's own reports
         query.submitterId = req.user._id;
+      }
+    } else if (req.user.role === 'School Chair') {
+      // Get reports from their school that need school chair approval
+      if (req.query.pending === 'true') {
+        query = {
+          department: req.user.department,
+          status: 'Faculty Approved'
+        };
+      } else if (req.query.processed === 'true') {
+        query = {
+          department: req.user.department,
+          status: { $in: ['School Chair Approved', 'Dean SRIC Approved', 'Director Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] }
+        };
+      } else {
+        // Default: pending reports
+        query = {
+          department: req.user.department,
+          status: 'Faculty Approved'
+        };
+      }
+    } else if (req.user.role === 'Dean SRIC') {
+      // Get Project Fund reports that need Dean SRIC approval
+      if (req.query.pending === 'true') {
+        query = {
+          fundType: 'Project Fund',
+          status: 'School Chair Approved'
+        };
+      } else if (req.query.processed === 'true') {
+        query = {
+          fundType: 'Project Fund',
+          status: { $in: ['Dean SRIC Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] }
+        };
+      } else {
+        // Default: pending reports
+        query = {
+          fundType: 'Project Fund',
+          status: 'School Chair Approved'
+        };
+      }
+    } else if (req.user.role === 'Director') {
+      // Get Institute Fund reports that need Director approval
+      if (req.query.pending === 'true') {
+        query = {
+          fundType: 'Institute Fund',
+          status: 'School Chair Approved'
+        };
+      } else if (req.query.processed === 'true') {
+        query = {
+          fundType: 'Institute Fund',
+          status: { $in: ['Director Approved', 'Audit Approved', 'Finance Approved', 'Rejected'] }
+        };
+      } else {
+        // Default: pending reports
+        query = {
+          fundType: 'Institute Fund',
+          status: 'School Chair Approved'
+        };
       }
     } else if (req.user.role === 'Audit') {
       if (req.query.all === 'true') {
         // Audit-all endpoint: only processed reports (exclude pending)
         query.status = { $in: ['Audit Approved', 'Finance Approved', 'Rejected'] };
       } else {
-        // Default audit endpoint: ALL reports that need audit review
+        // Default audit endpoint: reports that need audit review (after various approval paths)
         query = {
           $or: [
-            { status: 'Faculty Approved' }, // Faculty reports
-            { status: 'Submitted', submitterRole: 'Faculty' } // Just in case
+            { status: 'School Chair Approved', fundType: { $in: ['Department/School Fund', 'Professional Development Allowance'] } },
+            { status: 'Dean SRIC Approved' },
+            { status: 'Director Approved' }
           ]
         };
         console.log('Audit query:', query);
@@ -238,7 +307,7 @@ export const submitExpenseReport = async (req, res) => {
 
 export const approveExpenseReport = async (req, res) => {
   try {
-    const { action, remarks } = req.body;
+    const { action, remarks, fundType, projectId } = req.body;
     const report = await ExpenseReport.findById(req.params.id);
     
     if (!report) {
@@ -247,9 +316,25 @@ export const approveExpenseReport = async (req, res) => {
     
     const currentDate = new Date();
     
+    // Faculty approval - now includes fund type categorization
     if (req.user.role === 'Faculty' && report.status === 'Submitted') {
       if (action === 'approve') {
+        // Validate fund type selection
+        if (!fundType) {
+          return res.status(400).json({ message: 'Fund type must be selected before approval' });
+        }
+        
+        // Validate project ID for Project Fund
+        if (fundType === 'Project Fund' && !projectId) {
+          return res.status(400).json({ message: 'Project ID is required for Project Fund' });
+        }
+        
         report.status = 'Faculty Approved';
+        report.fundType = fundType;
+        if (projectId) {
+          report.projectId = projectId;
+        }
+        
         // Only set facultyId and facultyName if not already set (i.e., if student submitted)
         if (!report.facultyId && report.submitterRole === 'Student') {
           report.facultyId = req.user._id;
@@ -258,7 +343,6 @@ export const approveExpenseReport = async (req, res) => {
         report.facultyApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        // Only set facultyId and facultyName if not already set (i.e., if student submitted)
         if (!report.facultyId && report.submitterRole === 'Student') {
           report.facultyId = req.user._id;
           report.facultyName = req.user.name;
@@ -266,10 +350,88 @@ export const approveExpenseReport = async (req, res) => {
         report.facultyApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
         report.status = 'Draft';
-        // Keep original facultyId and facultyName, just record who sent it back
         report.facultyApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
-    } else if (req.user.role === 'Audit' && report.status === 'Faculty Approved') {
+    }
+    // School Chair approval
+    else if (req.user.role === 'School Chair' && report.status === 'Faculty Approved') {
+      // Verify this school chair is for the report's department
+      const schoolChair = await getSchoolChair(report.department);
+      if (!schoolChair || schoolChair._id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'You are not authorized to approve reports for this school' });
+      }
+      
+      if (action === 'approve') {
+        report.status = 'School Chair Approved';
+        report.schoolChairApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'reject') {
+        report.status = 'Rejected';
+        report.schoolChairApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'sendback') {
+        report.status = 'Draft'; // Send back to creator
+        report.schoolChairApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+      }
+    }
+    // Dean SRIC approval (for Project Fund only)
+    else if (req.user.role === 'Dean SRIC' && report.status === 'School Chair Approved' && report.fundType === 'Project Fund') {
+      // Any user with Dean SRIC role can approve
+      // Optional: verify against SchoolAdmin for additional security
+      const deanSRIC = await getDeanSRIC();
+      if (deanSRIC && deanSRIC._id.toString() !== req.user._id.toString()) {
+        console.warn(`Dean SRIC mismatch: User ${req.user._id} not in SchoolAdmin, but has Dean SRIC role`);
+      }
+      
+      if (action === 'approve') {
+        report.status = 'Dean SRIC Approved';
+        report.deanSRICApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'reject') {
+        report.status = 'Rejected';
+        report.deanSRICApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'sendback') {
+        report.status = 'Draft'; // Send back to creator
+        report.deanSRICApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+      }
+    }
+    // Director approval (for Institute Fund only)
+    else if (req.user.role === 'Director' && report.status === 'School Chair Approved' && report.fundType === 'Institute Fund') {
+      // Any user with Director role can approve
+      // Optional: verify against SchoolAdmin for additional security
+      const director = await getDirector();
+      if (director && director._id.toString() !== req.user._id.toString()) {
+        console.warn(`Director mismatch: User ${req.user._id} not in SchoolAdmin, but has Director role`);
+      }
+      
+      if (action === 'approve') {
+        report.status = 'Director Approved';
+        report.directorApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'reject') {
+        report.status = 'Rejected';
+        report.directorApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+      } else if (action === 'sendback') {
+        report.status = 'Draft'; // Send back to creator
+        report.directorApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+      }
+    }
+    // Audit approval - comes after School Chair (for Dept/Prof Dev) or Dean SRIC (for Project) or Director (for Institute)
+    else if (req.user.role === 'Audit') {
+      // Verify correct workflow position based on fund type
+      let canApprove = false;
+      
+      if (report.fundType === 'Institute Fund' && report.status === 'Director Approved') {
+        canApprove = true;
+      } else if (report.fundType === 'Project Fund' && report.status === 'Dean SRIC Approved') {
+        canApprove = true;
+      } else if ((report.fundType === 'Department/School Fund' || report.fundType === 'Professional Development Allowance') 
+                 && report.status === 'School Chair Approved') {
+        canApprove = true;
+      }
+      
+      if (!canApprove) {
+        return res.status(400).json({ 
+          message: `Cannot approve at this stage. Current status: ${report.status}, Fund type: ${report.fundType}. Please wait for the correct approval stage.` 
+        });
+      }
+      
       if (action === 'approve') {
         report.status = 'Audit Approved';
         report.auditApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
@@ -277,10 +439,13 @@ export const approveExpenseReport = async (req, res) => {
         report.status = 'Rejected';
         report.auditApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
-        report.status = 'Submitted';
+        // Send back to creator
+        report.status = 'Draft';
         report.auditApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
-    } else if (req.user.role === 'Finance' && report.status === 'Audit Approved') {
+    }
+    // Finance approval - final stage
+    else if (req.user.role === 'Finance' && report.status === 'Audit Approved') {
       if (action === 'approve') {
         report.status = 'Finance Approved';
         report.financeApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
@@ -288,11 +453,11 @@ export const approveExpenseReport = async (req, res) => {
         report.status = 'Rejected';
         report.financeApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
       } else if (action === 'sendback') {
-        report.status = 'Faculty Approved';
+        report.status = 'Draft'; // Send back to creator
         report.financeApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
       }
     } else {
-      return res.status(400).json({ message: 'Invalid approval action for current status' });
+      return res.status(400).json({ message: 'Invalid approval action for current status and user role' });
     }
     
     await report.save();

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import API from '../../../shared/services/axios';
 import { useAuthStore } from '../../../features/authentication/authStore';
 import { getAllCategories } from '../../../utils/expenseCategories';
+import { SCHOOLS } from '../../../utils/schools';
 
 
 const ExpenseReportForm = ({ onSuccess }) => {
@@ -34,7 +35,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
   const functions = ['Instruction', 'Research', 'Student Services', 'Administration'];
   const funds = ['General Operating Fund', 'Grant Fund', 'Endowment Fund', 'Special Projects Fund'];
   const regions = ['Main Campus', 'Medical School', 'Satellite Campus', 'Remote Location'];
-  const departments = ['SCEE', 'SMME'];
+  const departments = SCHOOLS.map(s => s.value);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,6 +85,7 @@ const ExpenseReportForm = ({ onSuccess }) => {
             {/* 1. Faculty & Report Information */}
             <div className="bg-gray-50 p-6 rounded-md border border-gray-200">
               <h3 className="text-xl font-bold text-gray-900 mb-6">1. Faculty & Report Information</h3>
+              <p className="text-xs text-gray-500 mb-4">Your name and department are automatically filled from your profile.</p>
               
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -93,9 +95,9 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
                     value={formData.facultyName}
-                    onChange={(e) => setFormData({ ...formData, facultyName: e.target.value })}
+                    disabled
                     placeholder="Dr. John Smith"
                   />
                 </div>
@@ -103,17 +105,13 @@ const ExpenseReportForm = ({ onSuccess }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Department *
                   </label>
-                  <select
+                  <input
+                    type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
                     value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  >
-                    <option value="">Select department</option>
-                    {departments.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
+                    disabled
+                  />
                 </div>
               </div>
               

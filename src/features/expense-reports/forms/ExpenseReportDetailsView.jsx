@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
 import ExpenseItemViewModal from '../components/ExpenseItemViewModal';
+import WorkflowProgress from '../../../shared/components/WorkflowProgress';
 import { generateExpenseReportPDF } from '../../../utils/pdfGenerator';
 import { HiOutlinePrinter } from 'react-icons/hi2';
 
@@ -341,124 +342,10 @@ const ExpenseReportDetails = () => {
         </div>
 
         {/* 4. Approval Status & History */}
-        {(report.status !== 'Draft' || (report.status === 'Draft' && (report.facultyApproval || report.auditApproval || report.financeApproval))) && (
-          <div className="bg-white p-6 rounded border border-gray-300 mb-8">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-300 pb-2">4. Approval Status & History</h3>
-            <div className="space-y-4">
-              {/* Faculty Step */}
-              <div className="flex items-start gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                  report.facultyApproval?.approved === true ? 'bg-green-500' :
-                  report.facultyApproval?.action === 'sendback' ? 'bg-yellow-500' :
-                  report.facultyApproval?.approved === false ? 'bg-red-500' :
-                  report.status === 'Submitted' ? 'bg-blue-500' : 'bg-gray-300'
-                }`}>
-                  1
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold">Faculty Review</h4>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      report.facultyApproval?.approved === true ? 'bg-green-100 text-green-800' :
-                      report.facultyApproval?.action === 'sendback' ? 'bg-yellow-100 text-yellow-800' :
-                      report.facultyApproval?.approved === false ? 'bg-red-100 text-red-800' :
-                      report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {report.facultyApproval?.approved === true ? 'Approved' :
-                       report.facultyApproval?.action === 'sendback' ? 'Sent Back' :
-                       report.facultyApproval?.approved === false ? 'Rejected' :
-                       report.status === 'Submitted' ? 'Pending' : 'Not Started'}
-                    </span>
-                  </div>
-                  {report.facultyApproval && (
-                    <div className="mt-2 text-sm">
-                      <p className="text-gray-600">By: {report.facultyApproval.approvedBy || report.facultyName} on {new Date(report.facultyApproval.date).toLocaleDateString()}</p>
-                      {report.facultyApproval.remarks && (
-                        <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.facultyApproval.remarks}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Audit Step */}
-              <div className="flex items-start gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                  report.auditApproval?.approved === true ? 'bg-green-500' :
-                  report.auditApproval?.action === 'sendback' ? 'bg-yellow-500' :
-                  report.auditApproval?.approved === false ? 'bg-red-500' :
-                  report.status === 'Faculty Approved' ? 'bg-blue-500' : 'bg-gray-300'
-                }`}>
-                  2
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold">Audit Review</h4>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      report.auditApproval?.approved === true ? 'bg-green-100 text-green-800' :
-                      report.auditApproval?.action === 'sendback' ? 'bg-yellow-100 text-yellow-800' :
-                      report.auditApproval?.approved === false ? 'bg-red-100 text-red-800' :
-                      report.status === 'Faculty Approved' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {report.auditApproval?.approved === true ? 'Approved' :
-                       report.auditApproval?.action === 'sendback' ? 'Sent Back' :
-                       report.auditApproval?.approved === false ? 'Rejected' :
-                       report.status === 'Faculty Approved' ? 'Pending' : 'Not Started'}
-                    </span>
-                  </div>
-                  {report.auditApproval && (
-                    <div className="mt-2 text-sm">
-                      <p className="text-gray-600">On {new Date(report.auditApproval.date).toLocaleDateString()}</p>
-                      {report.auditApproval.approvedBy && (
-                        <p className="text-gray-600">by {report.auditApproval.approvedBy}</p>
-                      )}
-                      {report.auditApproval.remarks && (
-                        <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.auditApproval.remarks}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Finance Step */}
-              <div className="flex items-start gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                  report.financeApproval?.approved === true ? 'bg-green-500' :
-                  report.financeApproval?.action === 'sendback' ? 'bg-yellow-500' :
-                  report.financeApproval?.approved === false ? 'bg-red-500' :
-                  report.status === 'Audit Approved' ? 'bg-blue-500' : 'bg-gray-300'
-                }`}>
-                  3
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold">Finance Review</h4>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      report.financeApproval?.approved === true ? 'bg-green-100 text-green-800' :
-                      report.financeApproval?.action === 'sendback' ? 'bg-yellow-100 text-yellow-800' :
-                      report.financeApproval?.approved === false ? 'bg-red-100 text-red-800' :
-                      report.status === 'Audit Approved' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {report.financeApproval?.approved === true ? 'Approved' :
-                       report.financeApproval?.action === 'sendback' ? 'Sent Back' :
-                       report.financeApproval?.approved === false ? 'Rejected' :
-                       report.status === 'Audit Approved' ? 'Pending' : 'Not Started'}
-                    </span>
-                  </div>
-                  {report.financeApproval && (
-                    <div className="mt-2 text-sm">
-                      <p className="text-gray-600">On {new Date(report.financeApproval.date).toLocaleDateString()}</p>
-                      {report.financeApproval.approvedBy && (
-                        <p className="text-gray-600">by {report.financeApproval.approvedBy}</p>
-                      )}
-                      {report.financeApproval.remarks && (
-                        <p className="text-gray-700 mt-1 bg-gray-50 p-2 rounded"><strong>Remarks:</strong> {report.financeApproval.remarks}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {(report.status !== 'Draft' || (report.status === 'Draft' && (report.facultyApproval || report.schoolChairApproval || report.deanSRICApproval || report.directorApproval || report.auditApproval || report.financeApproval))) && (
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">4. Approval Status & History</h3>
+            <WorkflowProgress report={report} />
           </div>
         )}
 
