@@ -1,7 +1,8 @@
 import express from 'express';
 import { 
   getAllUsers, 
-  updateUserRole, 
+  updateUserRole,
+  deleteUser,
   getSystemLogs,
   getSchoolAdmins,
   assignSchoolChair,
@@ -17,6 +18,7 @@ router.use(authorize('Admin'));
 
 router.get('/users', getAllUsers);
 router.patch('/users/:id/role', updateUserRole);
+router.delete('/users/:id', deleteUser);
 router.get('/logs', getSystemLogs);
 
 // School administration management

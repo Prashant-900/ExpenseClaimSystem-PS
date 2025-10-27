@@ -51,13 +51,16 @@ const FacultyFundCategorizationModal = ({ report, onApprove, onReject, onSendBac
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Review Student Expense Report</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Review Expense Report - Faculty
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
+              disabled={isSubmitting}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -67,25 +70,74 @@ const FacultyFundCategorizationModal = ({ report, onApprove, onReject, onSendBac
 
           {/* Report Summary */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold text-lg mb-2">Report Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <h3 className="font-semibold text-lg mb-3">Report Details</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Student:</span> {report.submitterId?.name}
+                <span className="font-medium">Submitter:</span> {report.submitterId?.name || report.studentName}
+              </div>
+              <div>
+                <span className="font-medium">Role:</span> {report.submitterRole}
               </div>
               <div>
                 <span className="font-medium">Department:</span> {report.department}
               </div>
               <div>
+                <span className="font-medium">Student ID:</span> {report.studentId || 'N/A'}
+              </div>
+              <div className="col-span-2">
                 <span className="font-medium">Purpose:</span> {report.purposeOfExpense}
               </div>
               <div>
-                <span className="font-medium">Total Amount:</span> ₹{report.totalAmount?.toLocaleString()}
+                <span className="font-medium">Total Amount:</span> 
+                <span className="text-green-600 font-bold">₹{report.totalAmount?.toLocaleString()}</span>
               </div>
-              <div className="col-span-2">
+              <div>
                 <span className="font-medium">Period:</span> {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
               </div>
             </div>
           </div>
+
+          {/* Expense Items */}
+          {report.items && report.items.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold text-lg mb-3">Expense Items ({report.items.length})</h3>
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {report.items.map((item, index) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded border">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold">{item.category}</h4>
+                        <p className="text-sm text-gray-600">{item.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-600">₹{item.amountInINR?.toLocaleString()}</div>
+                        {item.currency !== 'INR' && (
+                          <div className="text-xs text-gray-500">
+                            {item.currency} {item.amount?.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                      <div><span className="font-medium">Date:</span> {new Date(item.date).toLocaleDateString()}</div>
+                      <div><span className="font-medium">Payment:</span> {item.paymentMethod}</div>
+                    </div>
+                    {item.receiptImage && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => window.open(item.receiptImage, '_blank')}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Receipt
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Action Selection */}
@@ -195,6 +247,7 @@ const FacultyFundCategorizationModal = ({ report, onApprove, onReject, onSendBac
                 placeholder="Add your comments or feedback..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required={action !== 'approve'}
+                disabled={isSubmitting}
               />
             </div>
 
