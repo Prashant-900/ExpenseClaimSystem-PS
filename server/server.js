@@ -21,7 +21,12 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'http://172.18.32.116:5173',
+    'http://192.168.1.1:5173',
+    'http://172.16.10.208:5173'
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -33,7 +38,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+})
   .then(() => {
     console.log('MongoDB connected');
     // Initialize knowledge base
@@ -56,4 +66,4 @@ app.use('/api/upload', uploadRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

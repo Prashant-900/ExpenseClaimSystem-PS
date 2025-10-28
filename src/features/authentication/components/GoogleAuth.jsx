@@ -1,6 +1,8 @@
+import { GOOGLE_AUTH_URL } from '../../../config/api.js';
+
 const GoogleAuth = () => {
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = GOOGLE_AUTH_URL;
   };
 
   return (

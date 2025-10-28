@@ -30,7 +30,7 @@ router.patch('/:id/submit', authorize('Faculty', 'Student'), submitExpenseReport
 router.post('/:id/items', authorize('Faculty', 'Student'), upload.single('receipt'), addExpenseItem);
 router.put('/:id/items/:itemId', authorize('Faculty', 'Student'), updateExpenseItem);
 router.delete('/:id/items/:itemId', authorize('Faculty', 'Student'), deleteExpenseItem);
-router.patch('/:id/approve', authorize('Faculty', 'Audit', 'Finance'), approveExpenseReport);
+router.patch('/:id/approve', authorize('Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance'), approveExpenseReport);
 router.get('/debug/all', getAllReportsDebug);
 
 export default router;

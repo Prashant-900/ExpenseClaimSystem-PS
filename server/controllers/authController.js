@@ -5,7 +5,7 @@ const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expires
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, facultyEmail, department } = req.body;
+    const { name, email, password, facultyEmail, department, studentId } = req.body;
     
     // Validate email domain
     const validDomains = [
@@ -31,12 +31,19 @@ export const register = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
-    const user = await User.create({ name, email, password, role, facultyEmail, department });
+    const userData = { name, email, password, role, facultyEmail, department };
+    
+    // Add studentId for students
+    if (role === 'Student' && studentId) {
+      userData.studentId = studentId;
+    }
+    
+    const user = await User.create(userData);
     const token = generateToken(user._id);
 
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, profileImage: user.profileImage }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, department: user.department, studentId: user.studentId, profileImage: user.profileImage }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -104,8 +111,13 @@ export const login = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, phone, department, bio } = req.body;
+    const { name, phone, department, bio, studentId } = req.body;
     const updateData = { name, phone, department, bio };
+    
+    // Only allow students to update studentId
+    if (req.user.role === 'Student' && studentId !== undefined) {
+      updateData.studentId = studentId;
+    }
     
     const user = await User.findByIdAndUpdate(
       req.user._id,

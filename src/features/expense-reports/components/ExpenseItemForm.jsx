@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Country, State, City } from 'country-state-city';
 import { convertToINR, getSupportedCurrencies, formatCurrency } from '../../../utils/currencyUtils';
+import { UPLOAD_URL } from '../../../config/api.js';
 
 const ExpenseItemForm = ({ item, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -101,7 +102,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
         const imageFormData = new FormData();
         imageFormData.append('receiptImage', receiptFile);
         
-        const response = await fetch('http://localhost:5000/api/upload/expense-receipt', {
+        const response = await fetch(`${UPLOAD_URL}/expense-receipt`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

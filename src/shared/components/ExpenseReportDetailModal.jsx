@@ -188,7 +188,7 @@ const ExpenseReportDetailModal = ({ reportId, isOpen, onClose }) => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3">Approval History</h3>
                 <div className="space-y-3">
-                  {report.facultyApproval && (
+                  {report.facultyApproval && (report.submitterRole !== 'Faculty' && report.submitterId?.role !== 'Faculty') && (
                     <div className="p-2 bg-white rounded">
                       <div className="flex justify-between items-center">
                         <span>Faculty Approval</span>

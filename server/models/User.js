@@ -5,14 +5,22 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Student', 'Faculty', 'Audit', 'Finance', 'Admin'], default: 'Student' },
+  role: { type: String, enum: ['Student', 'Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance', 'Admin'], default: 'Student' },
+  studentId: { 
+    type: String, 
+    required: function() {
+      return this.role === 'Student';
+    },
+    unique: true,
+    sparse: true // Allows null values for non-students
+  },
   facultyEmail: { type: String },
   phone: { type: String },
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME'],
+    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS'],
     required: function() {
-      return ['Student', 'Faculty'].includes(this.role);
+      return ['Student', 'Faculty', 'School Chair'].includes(this.role);
     }
   },
   bio: { type: String },
