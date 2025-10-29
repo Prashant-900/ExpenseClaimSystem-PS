@@ -28,24 +28,48 @@ const Sidebar = () => {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/create-report', label: 'Create Report', icon: HiOutlinePlus },
-        { path: '/pending', label: 'Student Pending', icon: HiOutlineClock },
-        { path: '/reviewed', label: 'Student Reviewed', icon: HiOutlineCheckCircle },
+        { path: '/faculty/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/faculty/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle },
+      ];
+    }
+    
+    if (user?.role === 'School Chair') {
+      return [
+        { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
+        { path: '/expense-reports/school-chair/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/school-chair/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle },
+      ];
+    }
+    
+    if (user?.role === 'Dean SRIC') {
+      return [
+        { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
+        { path: '/expense-reports/dean-sric/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/dean-sric/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle },
+      ];
+    }
+    
+    if (user?.role === 'Director') {
+      return [
+        { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
+        { path: '/expense-reports/director/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/director/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle },
       ];
     }
     
     if (user?.role === 'Audit') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
-        { path: '/audit', label: 'Audit Requests', icon: HiOutlineMagnifyingGlass },
-        { path: '/audit-all', label: 'All Requests', icon: HiOutlineClipboardDocumentList }
+        { path: '/expense-reports/audit/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/audit/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle }
       ];
     }
     
     if (user?.role === 'Finance') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
-        { path: '/approvals', label: 'Final Approvals', icon: HiOutlineBanknotes },
-        { path: '/processed', label: 'All Requests', icon: HiOutlineCheckCircle }
+        { path: '/finance/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
+        { path: '/finance/approved', label: 'Approved Requests', icon: HiOutlineCheckCircle }
       ];
     }
     
@@ -53,6 +77,7 @@ const Sidebar = () => {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/users', label: 'Manage Users', icon: HiOutlineUsers },
+        { path: '/admin/school-administration', label: 'School Administration', icon: HiOutlineDocumentText },
         { path: '/logs', label: 'System Logs', icon: HiOutlineDocumentText }
       ];
     }
@@ -91,7 +116,7 @@ const Sidebar = () => {
       
       <div className="p-4 border-t border-gray-600">
         <div className="text-xs text-gray-400">
-          © 2024 ExpenseClaim System
+          © 2025 ExpenseClaim System
         </div>
       </div>
     </div>

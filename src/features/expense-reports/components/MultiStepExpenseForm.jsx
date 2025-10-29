@@ -12,6 +12,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     studentId: '',
     studentName: user?.name || '',
+    facultyId: '',
     facultyName: user?.name || '',
     department: user?.department || 'SCEE',
     expensePeriodStart: '',
@@ -28,6 +29,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [viewingItem, setViewingItem] = useState(null);
+  const [facultyList, setFacultyList] = useState([]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,6 +51,19 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
     setEditingItem(null);
     setShowItemForm(false);
   };
+
+  useEffect(() => {
+    const fetchFaculty = async () => {
+      try {
+        const { data } = await API.get('/users/list?role=Faculty');
+        setFacultyList(data || []);
+      } catch (error) {
+        console.error('Failed to fetch faculty list:', error);
+      }
+    };
+
+    if (user?.role === 'Student') fetchFaculty();
+  }, [user]);
 
   const handleEditItem = (index) => {
     setEditingItem(index);
@@ -146,13 +161,41 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                   <label className="block text-sm font-medium mb-2">Student Name</label>
                   <input type="text" name="studentName" value={formData.studentName} onChange={handleChange} className="w-full p-2 border rounded" required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Department</label>
-                  <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded">
-                    <option value="SCEE">SCEE</option>
-                    <option value="SMME">SMME</option>
-                  </select>
-                </div>
+               <div>
+                 <label className="block text-sm font-medium mb-2">School</label>
+                 <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" required>
+                   <option value="">Select School</option>
+                   <option value="SCEE">SCEE</option>
+                   <option value="SMME">SMME</option>
+                   <option value="SCENE">SCENE</option>
+                   <option value="SBB">SBB</option>
+                   <option value="SCS">SCS</option>
+                   <option value="SMSS">SMSS</option>
+                   <option value="SPS">SPS</option>
+                   <option value="SoM">SoM</option>
+                   <option value="SHSS">SHSS</option>
+                 </select>
+               </div>
+                {user?.role === 'Student' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Select Faculty for Submission</label>
+                    <select
+                      name="facultyId"
+                      value={formData.facultyId}
+                      onChange={(e) => {
+                        const sel = facultyList.find(f => f._id === e.target.value);
+                        setFormData({ ...formData, facultyId: e.target.value, facultyName: sel?.name || '' });
+                      }}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">-- Select Faculty --</option>
+                      {facultyList.map(f => (
+                        <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

@@ -56,7 +56,7 @@ const ExpenseCard = ({ request, onAction, userRole, showActions = true }) => {
                 <span>{new Date(request.expenseDate).toLocaleDateString()}</span>
               </div>
             </div>
-            <StatusBadge status={request.status} />
+            <StatusBadge status={request.status} fundType={request.fundType} />
           </div>
         </div>
 

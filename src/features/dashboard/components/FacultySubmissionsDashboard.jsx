@@ -15,9 +15,26 @@ const FacultySubmissionsPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements/my-requests');
-      setRequests(data);
-      setFilteredRequests(data);
+      // Fetch both faculty's reimbursements and expense reports
+      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
+        API.get('/reimbursements/my-requests'),
+        API.get('/expense-reports')
+      ]);
+      
+      const reimbursements = reimbursementResponse.data;
+      const expenseReports = expenseReportResponse.data;
+      
+      // Combine both types with type identifier
+      const allRequests = [
+        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
+        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
+      ];
+      
+      // Sort by creation date
+      allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setRequests(allRequests);
+      setFilteredRequests(allRequests);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
@@ -100,7 +117,7 @@ const FacultySubmissionsPage = () => {
             Showing {filteredRequests.length} of {requests.length} submissions
           </div>
           {filteredRequests.map((request) => (
-            <ExpenseCard
+            <RequestCard
               key={request._id}
               request={request}
               userRole="Faculty"

@@ -3,6 +3,7 @@ import { useAuthStore } from '../../authentication/authStore';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
 import { formatCurrency } from '../../../utils/currencyUtils';
+import { SCHOOLS } from '../../../utils/schools';
 
 const FacultyExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
@@ -25,9 +26,19 @@ const FacultyExpenseForm = ({ onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+    
+    // Validate required fields
+    if (formData.items.length === 0) {
+      setErrorMessage('Please add at least one expense item before submitting.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -43,6 +54,9 @@ const FacultyExpenseForm = ({ onSuccess }) => {
       onSuccess?.();
     } catch (error) {
       console.error('Failed to create report:', error);
+      const message = error.response?.data?.message || 'Failed to create report. Please try again.';
+      setErrorMessage(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -78,10 +92,27 @@ const FacultyExpenseForm = ({ onSuccess }) => {
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">Faculty Expense Report</h2>
       
+      {errorMessage && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-5 rounded-lg shadow-md">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-base font-semibold text-red-800 mb-1">Submission Failed</h3>
+              <p className="text-sm text-red-700 font-medium">{errorMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Faculty Information */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Faculty Information</h3>
+          <p className="text-xs text-gray-500 mb-4">Your details are automatically filled from your profile and cannot be edited here.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Faculty Name</label>
@@ -89,22 +120,21 @@ const FacultyExpenseForm = ({ onSuccess }) => {
                 type="text"
                 name="facultyName"
                 value={formData.facultyName}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-gray-100 cursor-not-allowed"
+                disabled
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Department</label>
-              <select
+              <input
+                type="text"
                 name="department"
                 value={formData.department}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-              >
-                <option value="SCEE">SCEE</option>
-                <option value="SMME">SMME</option>
-              </select>
+                className="w-full p-2 border rounded bg-gray-100 cursor-not-allowed"
+                disabled
+                required
+              />
             </div>
           </div>
         </div>

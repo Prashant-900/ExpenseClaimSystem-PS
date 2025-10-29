@@ -2,25 +2,75 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
 import StatusBadge from './StatusBadge';
 import { getProfileImageUrl } from '../../utils/fileUploadUtils';
-import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
+import { generateReimbursementPDF } from '../../utils/pdfGenerator';
+import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft, HiOutlinePrinter } from 'react-icons/hi2';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
-  const canApprove = showActions && ((userRole === 'Audit' && request.status === 'Pending - Audit') ||
-                    (userRole === 'Finance' && request.status === 'Pending - Finance'));
-  const canSendBack = showActions && ((userRole === 'Audit' && request.status === 'Pending - Audit') ||
-                     (userRole === 'Finance' && request.status === 'Pending - Finance'));
+  // Handle both reimbursement and expense report types
+  const isReimbursement = request.type === 'reimbursement';
+  const isExpenseReport = request.type === 'expense-report';
+  
+  // Debug: Log the request details
+  console.log('Request details:', {
+    id: request._id,
+    status: request.status,
+    userRole,
+    showActions,
+    type: request.type
+  });
+  
+  const canApprove = showActions && (
+    (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
+    (userRole === 'Audit' && (
+      request.status === 'Director Approved' || 
+      request.status === 'Dean SRIC Approved'
+    )) ||
+    (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
+  );
+  const canSendBack = canApprove;
+  
+  console.log('Can approve:', canApprove, 'for status:', request.status, 'userRole:', userRole);
 
-  const submitter = request.studentId || request.facultySubmitterId;
-  const submitterRole = request.studentId ? 'Student' : 'Faculty';
+  // Get submitter info based on request type
+  let submitter, submitterRole;
+  if (isReimbursement) {
+    submitter = request.studentId || request.facultySubmitterId;
+    submitterRole = request.studentId ? 'Student' : 'Faculty';
+  } else if (isExpenseReport) {
+    submitter = request.submitterId;
+    submitterRole = request.submitterRole;
+  }
 
   const openProfile = () => {
     if (submitter) {
       window.open(`/profile/${submitter._id}`, '_blank');
     }
   };
+
+  const handlePrintRequest = async () => {
+    try {
+      if (isReimbursement) {
+        await generateReimbursementPDF(request);
+      } else {
+        // For expense reports, we'll use a simpler print for now since we have full PDF in the details view
+        alert('Please use the "Print Report" button in the detailed expense report view for a complete PDF.');
+      }
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  // Check if request is in a final state (completed or rejected)
+  const isRequestFinal = request && (
+    request.status === 'Approved - Finance' || 
+    request.status === 'Finance Approved' ||
+    request.status === 'Completed' || 
+    request.status === 'Rejected'
+  );
 
   return (
     <div className="card">
@@ -60,12 +110,40 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
       <div className="card-body">
         <div className="flex justify-between items-start mb-4">
         <div>
-          {request.title && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.title}</h2>}
-          <h3 className="text-lg font-semibold">${request.amount}</h3>
-          <p className="text-gray-600">{request.description}</p>
-          <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
-          {request.expenseDate && (
-            <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
+          {/* Display title/purpose based on request type */}
+          {isReimbursement && request.title && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.title}</h2>}
+          {isExpenseReport && request.purposeOfExpense && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.purposeOfExpense}</h2>}
+          
+          {/* Display amount */}
+          <h3 className="text-lg font-semibold">
+            {isReimbursement ? `$${request.amount}` : `₹${request.totalAmount?.toFixed(2) || '0.00'}`}
+          </h3>
+          
+          {/* Display description */}
+          <p className="text-gray-600">
+            {isReimbursement ? request.description : request.reportType}
+          </p>
+          
+          {/* Display type and date */}
+          {isReimbursement && (
+            <>
+              <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
+              {request.expenseDate && (
+                <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
+              )}
+            </>
+          )}
+          
+          {isExpenseReport && (
+            <>
+              <p className="text-sm text-gray-500">Department: {request.department}</p>
+              <p className="text-sm text-gray-500">Items: {request.items?.length || 0}</p>
+              {request.expensePeriodStart && request.expensePeriodEnd && (
+                <p className="text-sm text-gray-500">
+                  Period: {new Date(request.expensePeriodStart).toLocaleDateString()} - {new Date(request.expensePeriodEnd).toLocaleDateString()}
+                </p>
+              )}
+            </>
           )}
           
           {/* Dynamic fields based on expense type */}
@@ -96,7 +174,8 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
             </div>
           )}
           
-          {request.images && request.images.length > 0 && (
+          {/* Display images based on request type */}
+          {isReimbursement && request.images && request.images.length > 0 && (
             <div className="mt-3">
               <p className="text-sm font-medium text-gray-700 mb-2">Receipt Images:</p>
               <div className="flex gap-2 flex-wrap">
@@ -112,11 +191,28 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
               </div>
             </div>
           )}
+          
+          {isExpenseReport && request.items && request.items.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Expense Items:</p>
+              <div className="space-y-1">
+                {request.items.slice(0, 3).map((item, index) => (
+                  <p key={index} className="text-sm text-gray-600">
+                    {item.description} - ₹{item.amountInINR?.toFixed(2) || '0.00'}
+                  </p>
+                ))}
+                {request.items.length > 3 && (
+                  <p className="text-sm text-gray-500">...and {request.items.length - 3} more items</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        <StatusBadge status={request.status} />
+        <StatusBadge status={request.status} fundType={request.fundType} />
       </div>
       
-      {(request.auditRemarks || request.financeRemarks) && (
+      {/* Display remarks based on request type */}
+      {isReimbursement && (request.auditRemarks || request.financeRemarks) && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <h4 className="font-medium text-sm mb-2">Remarks:</h4>
           {request.auditRemarks && <p className="text-sm">Audit: {request.auditRemarks}</p>}
@@ -124,33 +220,72 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
         </div>
       )}
       
-        {canApprove && (
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => onAction(request._id, 'approve')}
-              className="flex items-center gap-2 btn-success"
-            >
-              <HiOutlineCheck className="w-4 h-4" />
-              Approve
-            </button>
-            <button
-              onClick={() => onAction(request._id, 'reject')}
-              className="flex items-center gap-2 btn-danger"
-            >
-              <HiOutlineXMark className="w-4 h-4" />
-              Reject
-            </button>
-            {canSendBack && (
+      {isExpenseReport && (request.auditApproval?.remarks || request.financeApproval?.remarks || (request.facultyApproval?.remarks && request.submitterRole !== 'Faculty')) && (
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <h4 className="font-medium text-sm mb-2">Remarks:</h4>
+          {request.facultyApproval?.remarks && request.submitterRole !== 'Faculty' && <p className="text-sm">Faculty: {request.facultyApproval.remarks}</p>}
+          {request.auditApproval?.remarks && <p className="text-sm">Audit: {request.auditApproval.remarks}</p>}
+          {request.financeApproval?.remarks && <p className="text-sm">Finance: {request.financeApproval.remarks}</p>}
+        </div>
+      )}
+      
+        <div className="flex gap-3 mt-4">
+          {/* View Details Button */}
+          <button
+            onClick={() => {
+              if (isExpenseReport) {
+                window.open(`/expense-report/${request._id}`, '_blank');
+              } else {
+                // For reimbursements, show details in modal or new page
+                console.log('View reimbursement details:', request._id);
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+          >
+            View Details
+          </button>
+          
+          {/* Action Buttons */}
+          {canApprove && (
+            <>
               <button
-                onClick={() => onAction(request._id, 'sendback')}
-                className="flex items-center gap-2 btn-warning"
+                onClick={() => onAction(request._id, 'approve')}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
               >
-                <HiOutlineArrowUturnLeft className="w-4 h-4" />
-                Send Back
+                <HiOutlineCheck className="w-4 h-4 inline mr-1" />
+                Approve
               </button>
-            )}
-          </div>
-        )}
+              <button
+                onClick={() => onAction(request._id, 'reject')}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium"
+              >
+                <HiOutlineXMark className="w-4 h-4 inline mr-1" />
+                Reject
+              </button>
+              {canSendBack && (
+                <button
+                  onClick={() => onAction(request._id, 'sendback')}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-medium"
+                >
+                  <HiOutlineArrowUturnLeft className="w-4 h-4 inline mr-1" />
+                  Send Back
+                </button>
+              )}
+            </>
+          )}
+          
+          {/* Print Button for Final State Requests */}
+          {isRequestFinal && (
+            <button
+              onClick={handlePrintRequest}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium"
+              title="Download PDF Report"
+            >
+              <HiOutlinePrinter className="w-4 h-4 inline mr-1" />
+              Print
+            </button>
+          )}
+        </div>
         
 
       </div>

@@ -3,6 +3,7 @@ import { useAuthStore } from '../../authentication/authStore';
 import Layout from '../../../shared/layout/Layout';
 import API from '../../../shared/services/axios';
 import { getProfileImageUrl } from '../../../utils/fileUploadUtils';
+import { SCHOOLS } from '../../../utils/schools';
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuthStore();
@@ -11,7 +12,8 @@ const ProfilePage = () => {
     email: '',
     phone: '',
     department: '',
-    bio: ''
+    bio: '',
+    studentId: ''
   });
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -26,7 +28,8 @@ const ProfilePage = () => {
         email: user.email || '',
         phone: user.phone || '',
         department: user.department || '',
-        bio: user.bio || ''
+        bio: user.bio || '',
+        studentId: user.studentId || ''
       });
       
       // Fetch profile image from MinIO
@@ -161,10 +164,41 @@ const ProfilePage = () => {
                 required
               >
                 <option value="">Select Department</option>
-                <option value="SCEE">SCEE</option>
-                <option value="SMME">SMME</option>
+                {SCHOOLS.map(school => (
+                  <option key={school.value} value={school.value}>{school.label}</option>
+                ))}
               </select>
             </div>
+
+            {user?.role === 'Student' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Student ID / Roll Number
+                  {!user?.studentId && (
+                    <span className="ml-2 text-red-600 text-xs font-bold">
+                      ⚠️ Required to create expense reports
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={formData.studentId}
+                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value.trim() })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    !user?.studentId 
+                      ? 'border-red-300 focus:ring-red-500 bg-yellow-50' 
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="Enter your Roll Number (e.g., B21001)"
+                  required
+                />
+                {!user?.studentId && (
+                  <p className="mt-1 text-xs text-red-600">
+                    You must provide your student ID before creating expense reports
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
