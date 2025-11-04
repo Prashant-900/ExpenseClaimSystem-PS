@@ -12,22 +12,30 @@ const VALID_DOMAINS = [
 // Custom middleware wrapper to handle Clerk auth + user lookup
 export const authenticate = async (req, res, next) => {
   try {
-    // Check if Clerk auth is present
-    const { userId } = req.auth;
+    // Get auth from Clerk - handle both old and new patterns
+    const auth = req.auth;
+    if (!auth) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = auth.userId || auth.sub;
     
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: 'Authentication required - invalid token' });
     }
 
     // Find or create user in our database
     let user = await User.findOne({ clerkId: userId });
     if (!user) {
-      const email = req.auth.user?.primaryEmailAddress?.emailAddress;
+      // Get email from auth object - handle different Clerk versions
+      const email = auth.user?.primaryEmailAddress?.emailAddress || 
+                    auth.email ||
+                    req.headers['x-clerk-email'];
       
       // Validate email domain
       const isValidDomain = VALID_DOMAINS.some(domain => email?.endsWith(domain));
       if (!isValidDomain) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: 'Access denied. Please use an IIT Mandi email address (@students.iitmandi.ac.in, @faculty.iitmandi.ac.in, @audit.iitmandi.ac.in, @finance.iitmandi.ac.in, or @admin.iitmandi.ac.in)' 
         });
       }

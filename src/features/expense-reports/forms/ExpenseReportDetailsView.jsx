@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
@@ -16,27 +16,24 @@ const ExpenseReportDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchReport();
-  }, [id]);
-
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     try {
-      console.log('Fetching report with ID:', id);
       const { data } = await API.get(`/expense-reports/${id}`);
-      console.log('Fetched report data:', data);
       setReport(data);
       setError(null);
     } catch (error) {
       console.error('Failed to fetch report:', error);
-      console.error('Error details:', error.response?.data);
       // Set error state
       setError(error.response?.data?.message || error.message || 'Failed to fetch report');
       setReport(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   const handleSubmitReport = async () => {
     try {
@@ -49,26 +46,16 @@ const ExpenseReportDetails = () => {
 
   const handleAddItem = async (item) => {
     try {
-      console.log('Adding item:', item);
-      console.log('Editing item:', editingItem);
-      console.log('Current report items:', report.items);
-      
       const updatedItems = editingItem 
         ? report.items.map(existingItem => existingItem._id === editingItem._id ? { ...existingItem, ...item } : existingItem)
         : [...(report.items || []), item];
       
-      console.log('Updated items:', updatedItems);
-      
       const totalAmount = updatedItems.reduce((sum, item) => sum + (item.amountInINR || 0), 0);
       
-      console.log('Total amount:', totalAmount);
-      
-      const response = await API.patch(`/expense-reports/${id}`, {
+      await API.patch(`/expense-reports/${id}`, {
         items: updatedItems,
         totalAmount
       });
-      
-      console.log('API response:', response.data);
       
       setShowItemForm(false);
       setEditingItem(null);
@@ -102,13 +89,10 @@ const ExpenseReportDetails = () => {
     if (!confirm('Are you sure you want to delete this entire report? This action cannot be undone.')) return;
     
     try {
-      console.log('Attempting to delete report:', id);
-      const response = await API.delete(`/expense-reports/${id}`);
-      console.log('Delete response:', response);
+      await API.delete(`/expense-reports/${id}`);
       window.location.href = '/dashboard';
     } catch (error) {
       console.error('Failed to delete report:', error);
-      console.error('Error details:', error.response?.data);
       alert(`Failed to delete report: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -120,7 +104,6 @@ const ExpenseReportDetails = () => {
     }
     
     try {
-      console.log('Generating PDF for report:', report);
       await generateExpenseReportPDF(report);
     } catch (error) {
       console.error('Failed to generate PDF:', error);

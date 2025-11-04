@@ -10,8 +10,7 @@ import {
   updateExpenseItem,
   deleteExpenseItem,
   deleteExpenseReport,
-  approveExpenseReport,
-  getAllReportsDebug
+  approveExpenseReport
 } from '../controllers/expenseReportController.js';
 import { authenticate, authorize } from '../utils/authorizationMiddleware.js';
 import upload from '../middleware/fileUploadMiddleware.js';
@@ -34,6 +33,5 @@ router.post('/:id/items', authorize('Faculty', 'Student'), upload.single('receip
 router.put('/:id/items/:itemId', authorize('Faculty', 'Student'), updateExpenseItem);
 router.delete('/:id/items/:itemId', authorize('Faculty', 'Student'), deleteExpenseItem);
 router.patch('/:id/approve', authorize('Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance'), approveExpenseReport);
-router.get('/debug/all', getAllReportsDebug);
 
 export default router;

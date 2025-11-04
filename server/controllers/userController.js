@@ -1,21 +1,20 @@
 import User from '../models/User.js';
-
-const getProfileImageUrl = (userId) => {
-  // Return direct public S3 URL (bucket is public)
-  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${userId}/profile.jpg`;
-};
+import { attachProfileImagesToUsers } from '../utils/imageUtils.js';
+import { ErrorTypes } from '../utils/appError.js';
 
 export const getUsersByRole = async (req, res) => {
   try {
     const role = req.query.role;
-    if (!role) return res.status(400).json({ message: 'Role query param is required' });
+    if (!role) {
+      const error = ErrorTypes.MISSING_FIELD('role query parameter');
+      return res.status(error.statusCode).json({ message: error.message });
+    }
 
     const users = await User.find({ role }).select('-password');
-    for (const user of users) {
-      user.profileImage = await getProfileImageUrl(user._id);
-    }
-    res.json(users);
+    const usersWithImages = await attachProfileImagesToUsers(users);
+    res.json(usersWithImages);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const appError = ErrorTypes.INTERNAL_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
 };

@@ -1,20 +1,7 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../features/authentication/authStore';
 import StatusBadge from './StatusBadge';
-import { getProfileImageUrl } from '../../utils/fileUploadUtils';
 import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft, HiOutlinePrinter } from 'react-icons/hi2';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
-  const navigate = useNavigate();
-  const { user } = useAuthStore();
-  
-  // Debug: Log the request details
-  console.log('Request details:', {
-    id: request._id,
-    status: request.status,
-    userRole,
-    showActions
-  });
   
   const canApprove = showActions && (
     (userRole === 'Faculty' && (request.status === 'Pending - Faculty Review' || request.status === 'Submitted')) ||
@@ -25,8 +12,6 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
     (userRole === 'Finance' && (request.status === 'Pending - Finance Review' || request.status === 'Audit Approved'))
   );
   const canSendBack = canApprove;
-  
-  console.log('Can approve:', canApprove, 'for status:', request.status, 'userRole:', userRole);
 
   // Get submitter info (expense reports)
   let submitter, submitterRole;

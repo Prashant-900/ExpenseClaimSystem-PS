@@ -1,9 +1,23 @@
 import User from '../models/User.js';
 import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
+import { getProfileImageUrl } from '../utils/imageUtils.js';
+import { ErrorTypes } from '../utils/appError.js';
 
 export const saveUser = async (req, res) => {
   try {
-    const { userId } = req.auth;
+    // Get userId from Clerk auth - handle different patterns
+    const auth = req.auth;
+    if (!auth) {
+      const error = ErrorTypes.UNAUTHORIZED();
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    const userId = auth.userId || auth.sub;
+    if (!userId) {
+      const error = ErrorTypes.UNAUTHORIZED();
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
     const { name, email, department, studentId } = req.body;
 
     // Check if user already exists
@@ -41,8 +55,10 @@ export const saveUser = async (req, res) => {
       user: user.toObject() 
     });
   } catch (error) {
-    console.error('Save user error:', error);
-    res.status(500).json({ message: error.message });
+    const appError = error.code === 11000 
+      ? ErrorTypes.DUPLICATE('Email or Student ID')
+      : ErrorTypes.INTERNAL_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
 };
 
@@ -64,14 +80,16 @@ export const updateProfile = async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const appError = ErrorTypes.INTERNAL_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
 };
 
 export const uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      const error = ErrorTypes.MISSING_FIELD('Profile image');
+      return res.status(error.statusCode).json({ message: error.message });
     }
 
     const fileName = await uploadToS3(req.file, req.user._id, 'profile');
@@ -80,8 +98,8 @@ export const uploadProfileImage = async (req, res) => {
 
     res.json({ message: 'Profile image uploaded successfully', imageUrl });
   } catch (error) {
-    console.error('Profile image upload error:', error);
-    res.status(500).json({ message: 'Failed to upload profile image' });
+    const appError = ErrorTypes.FILE_UPLOAD_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
 };
 
@@ -89,19 +107,16 @@ export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select('-password');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      const error = ErrorTypes.USER_NOT_FOUND();
+      return res.status(error.statusCode).json({ message: error.message });
     }
 
     // Get profile image URL
-    const profileImage = await getProfileImageUrl(user._id);
+    const profileImage = getProfileImageUrl(user._id);
 
     res.json({ ...user.toObject(), profileImage });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const appError = ErrorTypes.INTERNAL_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
-};
-
-const getProfileImageUrl = (userId) => {
-  // Return direct public S3 URL (bucket is public)
-  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${userId}/profile.jpg`;
 };

@@ -71,27 +71,6 @@ export const convertCurrency = async (amount, fromCurrency, toCurrency = 'INR') 
   }
 };
 
-// Convert currency amount synchronously from cache or fallback
-// Use this for UI updates that need immediate feedback
-export const convertCurrencySync = (amount, fromCurrency, toCurrency = 'INR') => {
-  if (fromCurrency === toCurrency) return amount;
-
-  try {
-    const now = Date.now();
-    // Only use cache if it exists and is still fresh
-    if (exchangeRateCache[fromCurrency] && (now - cacheTimestamp) < CACHE_DURATION) {
-      const rate = exchangeRateCache[fromCurrency][toCurrency] || 1;
-      return amount * rate;
-    }
-    // If no cache, return original amount as fallback
-    console.warn(`No cached rate for ${fromCurrency}. Displaying original amount.`);
-    return amount;
-  } catch (error) {
-    console.error('Currency conversion error:', error);
-    return amount;
-  }
-};
-
 // Format currency with code (no symbol)
 export const formatCurrency = (amount, countryCode) => {
   const country = getCountryByCode(countryCode);
