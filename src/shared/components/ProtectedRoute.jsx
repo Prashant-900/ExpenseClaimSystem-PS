@@ -1,23 +1,34 @@
 import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '../../features/authentication/authStore';
+import { useAuth } from '@clerk/clerk-react';
 import { hasRole } from '../../utils/roles';
+import { useUserRole } from '../hooks/useUserRole';
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
-  const { user, token, isLoading } = useAuthStore();
+  const { isLoaded, isSignedIn } = useAuth();
+  const { role, isLoading: roleLoading, error: roleError } = useUserRole();
 
-  if (!token) {
+  // Still loading auth
+  if (!isLoaded) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  // Not signed in
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />;
   }
 
-  if (token && !user && !isLoading) {
+  // Still loading role
+  if (roleLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
-  if (!user) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  // Error fetching role
+  if (roleError || !role) {
+    return <div className="flex justify-center items-center h-screen">Error: Unable to load user information</div>;
   }
 
-  if (requiredRoles.length > 0 && !hasRole(user.role, requiredRoles)) {
+  // Check role if required
+  if (requiredRoles.length > 0 && !hasRole(role, requiredRoles)) {
     return <Navigate to="/dashboard" replace />;
   }
 

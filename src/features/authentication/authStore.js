@@ -1,61 +1,61 @@
 import { create } from 'zustand';
-import API from '../../shared/services/axios.js';
+import { useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
-  token: localStorage.getItem('token'),
+  token: null,
   isLoading: false,
 
-  login: async (credentials) => {
-    set({ isLoading: true });
-    try {
-      const { data } = await API.post('/auth/login', credentials);
-      localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
-      return { success: true };
-    } catch (error) {
-      set({ isLoading: false });
-      return { success: false, error: error.response?.data?.message || 'Login failed' };
+  // Initialize from Clerk
+  initializeFromClerk: (clerkUser, clerkToken) => {
+    if (clerkUser && clerkToken) {
+      const userData = {
+        id: clerkUser.id,
+        name: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim() : clerkUser.emailAddresses[0].emailAddress,
+        email: clerkUser.emailAddresses[0].emailAddress,
+        profileImage: clerkUser.profileImageUrl,
+      };
+      set({ user: userData, token: clerkToken });
     }
   },
 
-  register: async (userData) => {
-    set({ isLoading: true });
-    try {
-      const { data } = await API.post('/auth/register', userData);
-      localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
-      return { success: true };
-    } catch (error) {
-      set({ isLoading: false });
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
-    }
-  },
-
+  // Logout - clears local store (Clerk logout should be handled by useAuth().signOut())
   logout: () => {
-    localStorage.removeItem('token');
     set({ user: null, token: null });
   },
 
-  checkAuth: async () => {
-    const token = get().token;
-    if (!token) return;
-    
-    try {
-      const { data } = await API.get('/auth/me');
-      set({ user: data });
-    } catch (error) {
-      if (error.response?.status === 401) {
-        get().logout();
-      }
-    }
+  // Update user
+  updateUser: (userData) => {
+    set({ user: { ...get().user, ...userData } });
   },
 
+  // Set auth data
   setAuthData: (token, user) => {
     set({ token, user });
   },
 
-  updateUser: (userData) => {
-    set({ user: { ...get().user, ...userData } });
+  // Get current auth state
+  getAuthState: () => {
+    return { user: get().user, token: get().token };
   }
 }));
+
+// Custom hook to sync Clerk auth with store
+export const useClerkAuthSync = () => {
+  const { user: clerkUser, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const { initializeFromClerk } = useAuthStore();
+
+  useEffect(() => {
+    if (isLoaded && clerkUser) {
+      getToken({ template: 'expenseclaim' }).then((token) => {
+        if (token) {
+          initializeFromClerk(clerkUser, token);
+        }
+      });
+    }
+  }, [clerkUser, isLoaded, getToken, initializeFromClerk]);
+
+  return { clerkUser, isLoaded };
+};

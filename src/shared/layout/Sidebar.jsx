@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
+import { useUserRole } from '../hooks/useUserRole';
 import { 
   HiOutlineChartBarSquare, 
   HiOutlinePlus, 
@@ -14,17 +15,21 @@ import {
 
 const Sidebar = () => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
   const location = useLocation();
 
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
+
   const getNavItems = () => {
-    if (user?.role === 'Student') {
+    if (userRole === 'Student') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/create-report', label: 'Create Report', icon: HiOutlinePlus }
       ];
     }
     
-    if (user?.role === 'Faculty') {
+    if (userRole === 'Faculty') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/create-report', label: 'Create Report', icon: HiOutlinePlus },
@@ -33,7 +38,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'School Chair') {
+    if (userRole === 'School Chair') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/school-chair/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -41,7 +46,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'Dean SRIC') {
+    if (userRole === 'Dean SRIC') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/dean-sric/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -49,7 +54,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'Director') {
+    if (userRole === 'Director') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/director/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -57,7 +62,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'Audit') {
+    if (userRole === 'Audit') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/audit/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -65,7 +70,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'Finance') {
+    if (userRole === 'Finance') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/finance/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -73,7 +78,7 @@ const Sidebar = () => {
       ];
     }
     
-    if (user?.role === 'Admin') {
+    if (userRole === 'Admin') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/users', label: 'Manage Users', icon: HiOutlineUsers },
@@ -91,7 +96,7 @@ const Sidebar = () => {
         <h2 className="text-xl font-bold text-white">ExpenseClaim</h2>
         <div className="mt-2 flex items-center">
           <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></div>
-          <p className="text-gray-300 text-sm font-medium">{user?.role}</p>
+          <p className="text-gray-300 text-sm font-medium">{userRole}</p>
         </div>
       </div>
       

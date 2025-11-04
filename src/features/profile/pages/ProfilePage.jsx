@@ -1,52 +1,60 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import Layout from '../../../shared/layout/Layout';
 import API from '../../../shared/services/axios';
-import { getProfileImageUrl } from '../../../utils/fileUploadUtils';
 import { SCHOOLS } from '../../../utils/schools';
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuthStore();
+  const { role } = useUserRole();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    department: '',
-    bio: '',
-    studentId: ''
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    department: user?.department || '',
+    bio: user?.bio || '',
+    studentId: user?.studentId || ''
   });
   const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imagePreview, setImagePreview] = useState(user?.profileImage || '');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [imageKey, setImageKey] = useState(Date.now());
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        department: user.department || '',
-        bio: user.bio || '',
-        studentId: user.studentId || ''
-      });
-      
-      // Fetch profile image from MinIO
-      const fetchProfileImage = async () => {
-        try {
-          const response = await API.get('/auth/me');
-          if (response.data.profileImage) {
-            setImagePreview(`${response.data.profileImage}?v=${Date.now()}`);
-          }
-        } catch (error) {
-          console.error('Failed to fetch profile image:', error);
+    // Fetch full user data from backend
+    const fetchUserData = async () => {
+      try {
+        const response = await API.get('/auth/me');
+        console.log('Fetched user data from backend:', response.data); // Debug log
+        const userData = response.data;
+        
+        setFormData({
+          name: userData.name || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          department: userData.department || '',
+          bio: userData.bio || '',
+          studentId: userData.studentId || ''
+        });
+        
+        if (userData.profileImage) {
+          setImagePreview(`${userData.profileImage}?v=${Date.now()}`);
         }
-      };
-      
-      fetchProfileImage();
-    }
-  }, [user]);
+        
+        // Update store with complete user data
+        updateUser(userData);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    };
+    
+    fetchUserData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -71,7 +79,7 @@ const ProfilePage = () => {
         const imageFormData = new FormData();
         imageFormData.append('profileImage', profileImage);
         
-        const imageResponse = await API.post('/auth/upload-profile-image', imageFormData, {
+        await API.post('/auth/upload-profile-image', imageFormData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         
@@ -170,7 +178,7 @@ const ProfilePage = () => {
               </select>
             </div>
 
-            {user?.role === 'Student' && (
+            {userRole === 'Student' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Student ID / Roll Number

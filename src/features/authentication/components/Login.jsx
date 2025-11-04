@@ -1,25 +1,62 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../authStore';
-import GoogleAuth from './GoogleAuth';
+import { useSignIn } from '@clerk/clerk-react';
+import OTPVerification from './OTPVerification';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState('');
   const navigate = useNavigate();
+  const { signIn } = useSignIn();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    const result = await login(formData);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+    setIsLoading(true);
+
+    try {
+      // Validate email domain
+      const validDomains = [
+        '@students.iitmandi.ac.in',
+        '@faculty.iitmandi.ac.in',
+        '@audit.iitmandi.ac.in',
+        '@finance.iitmandi.ac.in',
+        '@admin.iitmandi.ac.in'
+      ];
+      
+      const isValidDomain = validDomains.some(domain => formData.email.endsWith(domain));
+      if (!isValidDomain) {
+        setError('Please use an IIT Mandi email address (@students.iitmandi.ac.in, @faculty.iitmandi.ac.in, @audit.iitmandi.ac.in, @finance.iitmandi.ac.in, or @admin.iitmandi.ac.in)');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create sign-in with email code strategy (OTP)
+      await signIn.create({
+        identifier: formData.email,
+        password: formData.password,
+        strategy: 'email_code',
+      });
+
+      setVerifyingEmail(formData.email);
+      setShowOTP(true);
+    } catch (err) {
+      setError(err?.errors?.[0]?.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleOTPSuccess = () => {
+    navigate('/dashboard');
+  };
+
+  if (showOTP) {
+    return <OTPVerification email={verifyingEmail} onSuccess={handleOTPSuccess} type="signin" />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -67,17 +104,6 @@ const Login = () => {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or</span>
-            </div>
-          </div>
-
-          <GoogleAuth />
 
           <div className="text-center">
             <Link to="/register" className="text-gray-600 hover:text-gray-800">

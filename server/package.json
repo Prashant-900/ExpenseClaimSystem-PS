@@ -7,21 +7,17 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.43",
     "@google/generative-ai": "^0.21.0",
     "@pinecone-database/pinecone": "^2.2.2",
     "aws-sdk": "^2.1500.0",
-    "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-session": "^1.17.3",
-    "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "multer": "^2.0.0",
-    "nodemailer": "^6.9.4",
-    "passport": "^0.6.0",
-    "passport-google-oauth20": "^2.0.0"
+    "nodemailer": "^6.9.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

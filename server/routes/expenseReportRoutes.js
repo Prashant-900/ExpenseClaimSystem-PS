@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth } from '@clerk/express';
 import { 
   createExpenseReport, 
   getExpenseReports, 
@@ -17,6 +18,8 @@ import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
+// Apply Clerk auth to all routes
+router.use(requireAuth());
 router.use(authenticate);
 
 router.post('/', authorize('Faculty', 'Student'), createExpenseReport);

@@ -1,9 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import session from 'express-session';
 import dotenv from 'dotenv';
-import passport from './config/passport.js';
+import { clerkMiddleware } from '@clerk/express';
 import authRoutes from './routes/authRoutes.js';
 import expenseReportRoutes from './routes/expenseReportRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -33,13 +32,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(session({
-  secret: process.env.JWT_SECRET,
-  resave: false,
-  saveUninitialized: false
-}));
-app.use(passport.initialize());
-app.use(passport.session());
+
+// Add Clerk middleware
+app.use(clerkMiddleware());
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,

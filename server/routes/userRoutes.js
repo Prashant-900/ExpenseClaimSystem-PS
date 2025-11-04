@@ -1,15 +1,19 @@
 import express from 'express';
-import { getUserProfile } from '../controllers/authController.js';
+import { requireAuth } from '@clerk/express';
 import { getUsersByRole } from '../controllers/userController.js';
+import { getUserProfile } from '../controllers/authController.js';
 import { authenticate } from '../utils/authorizationMiddleware.js';
 
 const router = express.Router();
 
-// Get user profile
-router.get('/:userId/profile', authenticate, getUserProfile);
+// All routes protected with Clerk
+router.use(requireAuth());
+router.use(authenticate);
 
-// List users by role (e.g., /list?role=Faculty)
-// Public endpoint to allow students to fetch faculty list when preparing submissions
+// Get user profile
+router.get('/:userId/profile', getUserProfile);
+
+// List users by role (protected)
 router.get('/list', getUsersByRole);
 
 export default router;

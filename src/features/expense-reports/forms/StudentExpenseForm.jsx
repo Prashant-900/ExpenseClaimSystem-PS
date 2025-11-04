@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
 
 const StudentExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   const [formData, setFormData] = useState({
     studentId: user?.studentId || '',
     studentName: user?.name || '',
@@ -102,10 +107,10 @@ const StudentExpenseForm = ({ onSuccess }) => {
       }
     };
 
-    if (user?.role === 'Student') {
+    if (userRole === 'Student') {
       fetchFaculty();
     }
-  }, [user]);
+  }, [user, userRole]);
 
   const handleEditItem = (index) => {
     setEditingItem(index);
@@ -230,7 +235,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                 required
               />
             </div>
-            {user?.role === 'Student' && (
+            {userRole === 'Student' && (
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-2">Select Faculty for Submission</label>
                 <select

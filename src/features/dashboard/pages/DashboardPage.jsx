@@ -1,6 +1,7 @@
 import { useAuthStore } from '../../authentication/authStore';
 import Layout from '../../../shared/layout/Layout';
 import StudentDashboard from '../components/StudentDashboard';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 
 import FacultyDashboard from '../components/FacultyDashboard';
 import FacultySubmissionsDashboard from '../components/FacultySubmissionsDashboard';
@@ -41,7 +42,11 @@ import { useLocation } from 'react-router-dom';
 
 const DashboardPage = () => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
   const location = useLocation();
+
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
 
   const renderContent = () => {
     // Student routes
@@ -132,7 +137,7 @@ const DashboardPage = () => {
     }
 
     // Dashboard routes
-    switch (user?.role) {
+    switch (userRole) {
       case 'Student':
         return <ExpenseReportDashboard />;
       case 'Faculty':

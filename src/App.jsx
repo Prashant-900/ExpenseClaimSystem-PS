@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
-import { useAuthStore } from './features/authentication/authStore';
+import { setGetTokenFunction } from './shared/services/axios';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import LoginPage from './features/authentication/pages/LoginPage';
 import Register from './features/authentication/components/Register';
-import GoogleAuthSuccessPage from './features/authentication/pages/GoogleAuthSuccessPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import ExpenseClaimPage from './features/expense-reports/pages/ExpenseClaimPage';
 import ExpenseDraftEditPage from './features/expense-reports/pages/ExpenseDraftEditPage';
@@ -21,13 +21,19 @@ import SchoolAdministrationDashboard from './features/admin/components/SchoolAdm
 import { ROLES } from './utils/roles';
 
 function App() {
-  const { user, token, checkAuth } = useAuthStore();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
 
+  // Set up Clerk token getter for axios
   useEffect(() => {
-    if (token && !user) {
-      checkAuth();
+    if (getToken) {
+      // Use getToken without template parameter
+      setGetTokenFunction(() => getToken());
     }
-  }, [token, user, checkAuth]);
+  }, [getToken]);
+
+  if (!isLoaded) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
 
   return (
     <Router>
@@ -35,16 +41,11 @@ function App() {
         <Routes>
           <Route 
             path="/login" 
-            element={!token ? <LoginPage /> : <Navigate to="/dashboard" />} 
+            element={!isSignedIn ? <LoginPage /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/register" 
-            element={!token ? <Register /> : <Navigate to="/dashboard" />} 
-          />
-          
-          <Route 
-            path="/auth/success" 
-            element={<GoogleAuthSuccessPage />} 
+            element={!isSignedIn ? <Register /> : <Navigate to="/dashboard" />} 
           />
           
           <Route 

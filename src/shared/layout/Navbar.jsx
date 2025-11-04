@@ -1,12 +1,28 @@
 import { useAuthStore } from '../../features/authentication/authStore';
+import { useAuth } from '@clerk/clerk-react';
+import { useUserRole } from '../hooks/useUserRole';
 import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser } from 'react-icons/hi2';
 
 const Navbar = () => {
   const { user, logout } = useAuthStore();
+  const { signOut } = useAuth();
+  const { role } = useUserRole();
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/login';
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
+
+  const handleLogout = async () => {
+    try {
+      // Sign out from Clerk
+      await signOut({ redirectUrl: '/login' });
+      // Clear local store
+      logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: clear store and redirect
+      logout();
+      window.location.href = '/login';
+    }
   };
 
   return (
@@ -26,7 +42,7 @@ const Navbar = () => {
           <div className="flex items-center space-x-4">
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-              <p className="text-xs text-gray-500">{user?.role}</p>
+              <p className="text-xs text-gray-500">{userRole}</p>
             </div>
             <a href="/profile" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
               {user?.profileImage ? (

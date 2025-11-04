@@ -4,10 +4,15 @@ import Layout from '../../../shared/layout/Layout';
 import ExpenseReportForm from '../forms/ExpenseReportForm';
 import StudentExpenseForm from '../forms/StudentExpenseForm';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 
 const CreateReportPage = () => {
   const { user, checkAuth } = useAuthStore();
+  const { role } = useUserRole();
   const navigate = useNavigate();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   
   // Force refresh user data when component mounts to ensure we have latest studentId
   useEffect(() => {
@@ -15,7 +20,7 @@ const CreateReportPage = () => {
   }, [checkAuth]);
 
   // Check if student ID is missing for students
-  const isStudentMissingId = user?.role === 'Student' && !user?.studentId;
+  const isStudentMissingId = userRole === 'Student' && !user?.studentId;
 
   if (isStudentMissingId) {
     return (
@@ -52,7 +57,7 @@ const CreateReportPage = () => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        {user?.role === 'Student' ? (
+        {userRole === 'Student' ? (
           <StudentExpenseForm onSuccess={() => window.location.href = '/dashboard'} />
         ) : (
           <ExpenseReportForm onSuccess={() => window.location.href = '/dashboard'} />

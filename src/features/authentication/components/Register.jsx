@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../authStore';
-import { validateEmail } from '../../../utils/formValidators';
-import GoogleAuth from './GoogleAuth';
+import { useSignUp } from '@clerk/clerk-react';
 import { SCHOOLS } from '../../../utils/schools';
+import OTPVerification from './OTPVerification';
+import { API_URL } from '../../../config/api';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -14,8 +14,12 @@ const Register = () => {
     studentId: ''
   });
   const [error, setError] = useState('');
-  const { register, isLoading } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState('');
+  const [registrationData, setRegistrationData] = useState(null);
   const navigate = useNavigate();
+  const { signUp } = useSignUp();
   const departments = SCHOOLS.map(s => s.value);
   
   // Check if email indicates student role
@@ -24,21 +28,100 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    
+    setIsLoading(true);
 
+    try {
+      // Validate email domain
+      const validDomains = [
+        '@students.iitmandi.ac.in',
+        '@faculty.iitmandi.ac.in',
+        '@audit.iitmandi.ac.in',
+        '@finance.iitmandi.ac.in',
+        '@admin.iitmandi.ac.in'
+      ];
+      
+      const isValidDomain = validDomains.some(domain => formData.email.endsWith(domain));
+      if (!isValidDomain) {
+        setError('Please use an IIT Mandi email address (@students.iitmandi.ac.in, @faculty.iitmandi.ac.in, @audit.iitmandi.ac.in, @finance.iitmandi.ac.in, or @admin.iitmandi.ac.in)');
+        setIsLoading(false);
+        return;
+      }
 
-    const result = await register(formData);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+      // Validate password length
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters long');
+        setIsLoading(false);
+        return;
+      }
+
+      // Split name into firstName and lastName
+      const nameParts = formData.name.trim().split(/\s+/);
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Create sign-up with email verification
+      await signUp.create({
+        emailAddress: formData.email,
+        password: formData.password,
+        firstName: firstName,
+        lastName: lastName,
+      });
+
+      // Prepare email verification (OTP)
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+
+      // Store registration data for saving to DB after OTP verification
+      setRegistrationData({
+        firstName,
+        lastName,
+        email: formData.email,
+        department: formData.department,
+        studentId: formData.studentId,
+      });
+
+      setVerifyingEmail(formData.email);
+      setShowOTP(true);
+    } catch (err) {
+      setError(err?.errors?.[0]?.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleOTPSuccess = async () => {
+    try {
+      // Save user to database after OTP verification
+      if (registrationData) {
+        const response = await fetch(`${API_URL}/auth/save-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: `${registrationData.firstName} ${registrationData.lastName}`.trim(),
+            email: registrationData.email,
+            department: registrationData.department,
+            studentId: registrationData.studentId,
+          }),
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          console.error('Failed to save user to database');
+          // Still redirect to dashboard even if DB save fails (user is authenticated)
+        }
+      }
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Error saving user:', err);
+      // Still redirect to dashboard even if there's an error
+      navigate('/dashboard');
+    }
+  };
+
+  if (showOTP) {
+    return <OTPVerification email={verifyingEmail} onSuccess={handleOTPSuccess} type="signup" />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -118,7 +201,6 @@ const Register = () => {
             </div>
           )}
 
-
           <div>
             <button
               type="submit"
@@ -128,17 +210,6 @@ const Register = () => {
               {isLoading ? 'Creating account...' : 'Sign up'}
             </button>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or</span>
-            </div>
-          </div>
-
-          <GoogleAuth />
 
           <div className="text-center">
             <Link to="/login" className="text-gray-600 hover:text-gray-800">

@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API from '../../../shared/services/axios';
 import { useAuthStore } from '../../../features/authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import { countries, getCountryByCode, getStatesByCountry, getCitiesByState, convertCurrency, calculateDistance } from '../../../utils/countryStateData';
 import { getImageUrl } from '../../../config/api';
 
 const EditDraftForm = ({ onSuccess }) => {
   const { id } = useParams();
   const { user } = useAuthStore();
+  const { role } = useUserRole();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   const [formData, setFormData] = useState({
     title: '',
     expenseType: '',
@@ -455,7 +460,7 @@ const EditDraftForm = ({ onSuccess }) => {
               />
             </div>
 
-            {user?.role === 'Student' && (
+            {userRole === 'Student' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Email *</label>
                 <input
