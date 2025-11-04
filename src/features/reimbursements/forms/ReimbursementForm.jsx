@@ -6,7 +6,20 @@ import { UNIFIED_EXPENSE_CATEGORIES, getAllCategories } from '../../../utils/exp
 import { SCHOOLS } from '../../../utils/schools';
 
 const ReimbursementForm = ({ onSuccess }) => {
-  const { user } = useAuthStore();
+  const { user, checkAuth } = useAuthStore();
+  
+  // Alert to confirm component is loading
+  useEffect(() => {
+    alert('ReimbursementForm component loaded!');
+    checkAuth();
+  }, []);
+  
+  // Debug with alert
+  useEffect(() => {
+    if (user) {
+      alert(`User data: Name=${user.name}, StudentId=${user.studentId}, Role=${user.role}`);
+    }
+  }, [user]);
   const [formData, setFormData] = useState({
     title: '',
     expenseType: '',
@@ -96,6 +109,23 @@ const ReimbursementForm = ({ onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Validate dates for Travel expense type
+    if (formData.expenseType === 'Travel' && formData.startDate && formData.endDate) {
+      if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        setError('End date must be after start date');
+        return;
+      }
+    }
+    
+    // Validate dates for Accommodation expense type
+    if (formData.expenseType === 'Accommodation' && formData.checkinDate && formData.checkoutDate) {
+      if (new Date(formData.checkoutDate) < new Date(formData.checkinDate)) {
+        setError('Check-out date must be after check-in date');
+        return;
+      }
+    }
+    
     setIsLoading(true);
 
     try {
@@ -110,13 +140,13 @@ const ReimbursementForm = ({ onSuccess }) => {
         formDataToSend.append('images', image);
       });
 
-      await API.post('/drafts', formDataToSend, {
+      await API.post('/reimbursements', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       onSuccess();
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to save draft');
+      setError(error.response?.data?.message || 'Failed to submit reimbursement');
     } finally {
       setIsLoading(false);
     }
@@ -420,8 +450,8 @@ const ReimbursementForm = ({ onSuccess }) => {
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Create Draft</h1>
-        <p className="mt-1 text-gray-600">Save your expense details as a draft</p>
+        <h1 className="text-2xl font-bold text-gray-900">Create Reimbursement Request</h1>
+        <p className="mt-1 text-gray-600">Submit your expense reimbursement request</p>
       </div>
       
       <div className="max-w-4xl">
@@ -590,19 +620,45 @@ const ReimbursementForm = ({ onSuccess }) => {
           )}
         </div>
 
-        {user?.role === 'Student' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Faculty Email *
-            </label>
-            <input
-              type="email"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.facultyEmail}
-              onChange={(e) => setFormData({ ...formData, facultyEmail: e.target.value })}
-            />
+        <div className="bg-gray-50 p-4 rounded-lg border">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Student Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                value={user?.studentId || 'B21001'}
+                disabled
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                value={user?.name || 'Student Name'}
+                disabled
+                readOnly
+              />
+            </div>
           </div>
+        </div>
+        
+        {user?.role === 'Student' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Faculty Email *
+              </label>
+              <input
+                type="email"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.facultyEmail}
+                onChange={(e) => setFormData({ ...formData, facultyEmail: e.target.value })}
+              />
+            </div>
         )}
 
           <div className="pt-6 border-t border-gray-200">
@@ -611,7 +667,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               disabled={isLoading}
               className="btn-primary w-full"
             >
-              {isLoading ? 'Saving...' : 'Save as Draft'}
+              {isLoading ? 'Submitting...' : 'Submit Reimbursement Request'}
             </button>
             </div>
           </form>

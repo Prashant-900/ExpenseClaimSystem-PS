@@ -5,6 +5,17 @@ import { canUserApprove, getNextApproverRole, getSchoolChair, getDeanSRIC, getDi
 
 export const createExpenseReport = async (req, res) => {
   try {
+    // Validate required fields
+    const requiredFields = ['expensePeriodStart', 'expensePeriodEnd', 'purposeOfExpense', 'reportType', 'fundingSource'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields
+      });
+    }
+    
     // Validate that students have studentId before creating reports
     if (req.user.role === 'Student') {
       if (!req.user.studentId || req.user.studentId.trim() === '') {
@@ -30,6 +41,19 @@ export const createExpenseReport = async (req, res) => {
     const report = await ExpenseReport.create(reportData);
     res.status(201).json(report);
   } catch (error) {
+    console.error('Error creating expense report:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
     res.status(500).json({ message: error.message });
   }
 };

@@ -11,7 +11,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
     amount: '',
     currency: 'INR',
     paymentMethod: '',
-    businessPurpose: '',
+
     country: 'IN',
     state: '',
     city: '',
@@ -75,7 +75,23 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
   }, [formData.toState, formData.toCountry]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const newFormData = { ...formData, [name]: value };
+    
+    // Auto-calculate nights for accommodation
+    if (formData.category.startsWith('Accommodation') && (name === 'checkInDate' || name === 'checkOutDate')) {
+      if (newFormData.checkInDate && newFormData.checkOutDate) {
+        const checkIn = new Date(newFormData.checkInDate);
+        const checkOut = new Date(newFormData.checkOutDate);
+        if (checkOut >= checkIn) {
+          const timeDiff = checkOut.getTime() - checkIn.getTime();
+          const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
+          newFormData.numberOfNights = nights;
+        }
+      }
+    }
+    
+    setFormData(newFormData);
   };
 
   const handleImageChange = (e) => {
@@ -201,7 +217,14 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Check-out Date</label>
-              <input type="date" name="checkOutDate" value={formData.checkOutDate || ''} onChange={handleChange} className="w-full p-2 border rounded" />
+              <input 
+                type="date" 
+                name="checkOutDate" 
+                value={formData.checkOutDate || ''} 
+                onChange={handleChange} 
+                min={formData.checkInDate || ''}
+                className="w-full p-2 border rounded" 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -211,8 +234,8 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
                      value={formData.hotelName || formData.facilityName || ''} onChange={handleChange} className="w-full p-2 border rounded" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Number of Nights</label>
-              <input type="number" name="numberOfNights" value={formData.numberOfNights || ''} onChange={handleChange} className="w-full p-2 border rounded" />
+              <label className="block text-sm font-medium mb-1">Number of Nights (Auto-calculated)</label>
+              <input type="number" name="numberOfNights" value={formData.numberOfNights || ''} onChange={handleChange} className="w-full p-2 border rounded" placeholder="Auto-calculated from dates" />
             </div>
           </div>
         </>
@@ -309,43 +332,42 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Date *</label>
-              <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full p-2 border rounded" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Category *</label>
-              <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded" required>
-                <option value="">Select Category</option>
-                <optgroup label="Travel">
-                  <option value="Travel - Air">Air (Flight)</option>
-                  <option value="Travel - Train">Train</option>
-                  <option value="Travel - Bus">Bus</option>
-                  <option value="Travel - Ground Transport">Ground Transport</option>
-                </optgroup>
-                <optgroup label="Accommodation">
-                  <option value="Accommodation - Hotel">Hotel</option>
-                  <option value="Accommodation - Guest House">Guest House/Dormitory</option>
-                </optgroup>
-                <optgroup label="Meals">
-                  <option value="Meals - Breakfast">Breakfast</option>
-                  <option value="Meals - Lunch">Lunch</option>
-                  <option value="Meals - Dinner">Dinner</option>
-                </optgroup>
-                <optgroup label="Conference & Training">
-                  <option value="Conference - Registration">Registration Fees</option>
-                  <option value="Conference - Workshop">Workshop/Seminar</option>
-                </optgroup>
-                <optgroup label="Supplies">
-                  <option value="Supplies - Lab">Lab Supplies</option>
-                  <option value="Supplies - Office">Office/Stationery</option>
-                </optgroup>
-                <optgroup label="Miscellaneous">
-                  <option value="Miscellaneous - Other">Other (Specify)</option>
-                </optgroup>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category *</label>
+            <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded" required>
+              <option value="">Select Category</option>
+              <optgroup label="Travel">
+                <option value="Travel - Air">Air (Flight)</option>
+                <option value="Travel - Train">Train</option>
+                <option value="Travel - Bus">Bus</option>
+                <option value="Travel - Ground Transport">Ground Transport</option>
+              </optgroup>
+              <optgroup label="Accommodation">
+                <option value="Accommodation - Hotel">Hotel</option>
+                <option value="Accommodation - Guest House">Guest House/Dormitory</option>
+              </optgroup>
+              <optgroup label="Meals">
+                <option value="Meals - Breakfast">Breakfast</option>
+                <option value="Meals - Lunch">Lunch</option>
+                <option value="Meals - Dinner">Dinner</option>
+              </optgroup>
+              <optgroup label="Conference & Training">
+                <option value="Conference - Registration">Registration Fees</option>
+                <option value="Conference - Workshop">Workshop/Seminar</option>
+              </optgroup>
+              <optgroup label="Supplies">
+                <option value="Supplies - Lab">Lab Supplies</option>
+                <option value="Supplies - Office">Office/Stationery</option>
+              </optgroup>
+              <optgroup label="Miscellaneous">
+                <option value="Miscellaneous - Other">Other (Specify)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Date *</label>
+            <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full p-2 border rounded" required />
           </div>
 
           {renderCategorySpecificFields()}
@@ -427,20 +449,14 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Payment Method *</label>
-              <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full p-2 border rounded" required>
-                <option value="">Select Payment Method</option>
-                <option value="University Credit Card (P-Card)">University Credit Card (P-Card)</option>
-                <option value="Personal Funds (Reimbursement)">Personal Funds (Reimbursement)</option>
-                <option value="Direct Invoice to University">Direct Invoice to University</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Business Purpose *</label>
-              <input type="text" name="businessPurpose" value={formData.businessPurpose} onChange={handleChange} className="w-full p-2 border rounded" required />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Payment Method *</label>
+            <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full p-2 border rounded" required>
+              <option value="">Select Payment Method</option>
+              <option value="University Credit Card">University Credit Card</option>
+              <option value="Personal Funds (Reimbursement)">Personal Funds (Reimbursement)</option>
+              <option value="Direct Invoice to University">Direct Invoice to University</option>
+            </select>
           </div>
 
           <div>

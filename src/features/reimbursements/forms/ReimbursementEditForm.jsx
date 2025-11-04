@@ -111,6 +111,23 @@ const EditReimbursementForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Validate dates for Travel expense type
+    if (formData.expenseType === 'Travel' && formData.startDate && formData.endDate) {
+      if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        setError('End date must be after start date');
+        return;
+      }
+    }
+    
+    // Validate dates for Accommodation expense type
+    if (formData.expenseType === 'Accommodation' && formData.checkinDate && formData.checkoutDate) {
+      if (new Date(formData.checkoutDate) < new Date(formData.checkinDate)) {
+        setError('Check-out date must be after check-in date');
+        return;
+      }
+    }
+    
     setIsLoading(true);
 
     try {
