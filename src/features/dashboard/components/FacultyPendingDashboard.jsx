@@ -16,20 +16,13 @@ const FacultyPendingDashboard = () => {
 
   const fetchReports = async () => {
     try {
-      // Fetch both student expense reports and reimbursement requests
-      const [expenseReportResponse, reimbursementResponse] = await Promise.all([
-        API.get('/expense-reports?pending=true'),
-        API.get('/reimbursements?pending=true')
-      ]);
+      // Fetch only expense reports pending faculty approval
+      const expenseReportResponse = await API.get('/expense-reports?pending=true');
       
       const expenseReports = expenseReportResponse.data;
-      const reimbursements = reimbursementResponse.data;
       
-      // Combine both types with type identifier
-      const allReports = [
-        ...expenseReports.map(report => ({ ...report, type: 'expense-report' })),
-        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' }))
-      ];
+      // Map reports with type identifier
+      const allReports = expenseReports.map(report => ({ ...report, type: 'expense-report' }));
       
       // Sort by creation date
       allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

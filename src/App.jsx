@@ -6,8 +6,6 @@ import LoginPage from './features/authentication/pages/LoginPage';
 import Register from './features/authentication/components/Register';
 import GoogleAuthSuccessPage from './features/authentication/pages/GoogleAuthSuccessPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
-import ReimbursementEditPage from './features/reimbursements/pages/ReimbursementEditPage';
-import ReimbursementSubmitPage from './features/reimbursements/pages/ReimbursementSubmitPage';
 import ExpenseClaimPage from './features/expense-reports/pages/ExpenseClaimPage';
 import ExpenseDraftEditPage from './features/expense-reports/pages/ExpenseDraftEditPage';
 import ExpenseReportCreatePage from './features/expense-reports/pages/ExpenseReportCreatePage';
@@ -54,15 +52,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/submit" 
-            element={
-              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
-                <ReimbursementSubmitPage />
               </ProtectedRoute>
             } 
           />
@@ -243,15 +232,6 @@ function App() {
             element={
               <ProtectedRoute requiredRoles={[ROLES.FINANCE]}>
                 <DashboardPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/edit-request/:id" 
-            element={
-              <ProtectedRoute requiredRoles={[ROLES.STUDENT, ROLES.FACULTY]}>
-                <ReimbursementEditPage />
               </ProtectedRoute>
             } 
           />

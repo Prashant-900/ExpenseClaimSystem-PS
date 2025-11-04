@@ -1,21 +1,6 @@
 // API Configuration
 const getApiBaseUrl = () => {
-  // Check if we have environment variable (for production builds)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // For development, detect based on current host
-  const currentHost = window.location.hostname;
-  const currentProtocol = window.location.protocol;
-  
-  // If accessing from network IP, use the same IP for backend
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-    return `${currentProtocol}//${currentHost}:5000`;
-  }
-  
-  // Default to localhost for local development
-  return 'http://localhost:5000';
+  return 'http://13.201.80.85:5000';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

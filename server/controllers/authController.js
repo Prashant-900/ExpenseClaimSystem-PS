@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
 
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -50,28 +51,9 @@ export const register = async (req, res) => {
   }
 };
 
-const getProfileImageUrl = async (userId) => {
-  try {
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    const objectPath = `profiles/${userId}/profile.jpg`;
-    
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      return `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      return null;
-    }
-  } catch (error) {
-    return null;
-  }
+const getProfileImageUrl = (userId) => {
+  // Return direct public S3 URL (bucket is public)
+  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${userId}/profile.jpg`;
 };
 
 export const login = async (req, res) => {
@@ -137,9 +119,9 @@ export const uploadProfileImage = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const { uploadToMinio } = await import('../middleware/fileUploadMiddleware.js');
-    const fileName = await uploadToMinio(req.file, req.user._id, 'profile');
-    const imageUrl = `http://localhost:5000/api/images/${fileName}?v=${Date.now()}`;
+    const fileName = await uploadToS3(req.file, req.user._id, 'profile');
+    // Direct public S3 URL (bucket is public)
+    const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     res.json({ message: 'Profile image uploaded successfully', imageUrl });
   } catch (error) {

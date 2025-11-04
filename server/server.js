@@ -5,8 +5,6 @@ import session from 'express-session';
 import dotenv from 'dotenv';
 import passport from './config/passport.js';
 import authRoutes from './routes/authRoutes.js';
-import reimbursementRoutes from './routes/reimbursementRoutes.js';
-
 import expenseReportRoutes from './routes/expenseReportRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
@@ -20,13 +18,18 @@ dotenv.config();
 
 const app = express();
 
+// CORS configuration - allow multiple frontend URLs
+const corsOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  "http://43.204.216.162:80",
+  'http://172.18.32.116:5173',
+  'http://192.168.1.1:5173',
+  "http://ec2-43-204-216-162.ap-south-1.compute.amazonaws.com:80",
+  "http://172.31.5.53:80"
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://172.18.32.116:5173',
-    'http://192.168.1.1:5173',
-    'http://172.16.10.208:5173'
-  ],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -52,7 +55,6 @@ mongoose.connect(process.env.MONGODB_URI, {
   .catch(err => console.error('MongoDB connection error:', err.message || 'Unknown error'));
 
 app.use('/api/auth', authRoutes);
-app.use('/api/reimbursements', reimbursementRoutes);
 
 app.use('/api/expense-reports', expenseReportRoutes);
 app.use('/api/admin', adminRoutes);

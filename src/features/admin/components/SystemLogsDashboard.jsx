@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import API from '../../../shared/services/axios';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import SearchAndFilter from '../../../shared/components/SearchAndFilter';
+import { getImageUrl } from '../../../config/api';
 
 const SystemLogsPage = () => {
   const [logs, setLogs] = useState([]);
@@ -14,7 +15,7 @@ const SystemLogsPage = () => {
 
   const fetchLogs = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
+      const { data } = await API.get('/admin/logs');
       const logsData = Array.isArray(data) ? data : [];
       setLogs(logsData);
       setFilteredLogs(logsData);
@@ -95,7 +96,7 @@ const SystemLogsPage = () => {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">System Logs</h1>
-        <p className="text-gray-600">View all reimbursement requests and their status</p>
+        <p className="text-gray-600">View all expense reports and their status</p>
       </div>
 
       <SearchAndFilter 
@@ -129,7 +130,7 @@ const SystemLogsPage = () => {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     {(log.studentId?.profileImage || log.facultySubmitterId?.profileImage) && (
                       <img 
-                        src={`http://localhost:5000/api/images/${log.studentId?.profileImage || log.facultySubmitterId?.profileImage}`} 
+                        src={getImageUrl(log.studentId?.profileImage || log.facultySubmitterId?.profileImage)} 
                         alt="Profile" 
                         className="w-6 h-6 rounded-full object-cover cursor-pointer hover:opacity-75"
                         onClick={() => window.open(`/profile/${log.studentId?._id || log.facultySubmitterId?._id}`, '_blank')}
@@ -145,10 +146,10 @@ const SystemLogsPage = () => {
                         {log.images.map((image, index) => (
                           <img
                             key={index}
-                            src={`http://localhost:5000/api/images/${image}`}
+                            src={getImageUrl(image)}
                             alt={`Receipt ${index + 1}`}
                             className="w-12 h-12 object-cover rounded border cursor-pointer hover:opacity-75"
-                            onClick={() => window.open(`http://localhost:5000/api/images/${image}`, '_blank')}
+                            onClick={() => window.open(getImageUrl(image), '_blank')}
                           />
                         ))}
                       </div>

@@ -17,20 +17,13 @@ const FinanceApprovalsPage = () => {
 
   const fetchRequests = async () => {
     try {
-      // Fetch both reimbursements and expense reports pending finance approval
-      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
-        API.get('/reimbursements?pending=true'),
-        API.get('/expense-reports')
-      ]);
+      // Fetch expense reports pending finance approval
+      const expenseReportResponse = await API.get('/expense-reports');
       
-      const reimbursements = reimbursementResponse.data.filter(r => r.status === 'Pending - Finance Review');
       const expenseReports = expenseReportResponse.data.filter(r => r.status === 'Audit Approved');
       
-      // Combine both types with type identifier
-      const allRequests = [
-        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
-        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
-      ];
+      // Map with type identifier
+      const allRequests = expenseReports.map(req => ({ ...req, type: 'expense-report' }));
       
       // Sort by creation date
       allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -85,19 +78,11 @@ const FinanceApprovalsPage = () => {
 
   const confirmAction = async () => {
     try {
-      const request = requests.find(r => r._id === actionModal.requestId);
-      
-      if (request.type === 'reimbursement') {
-        await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
-          status: actionModal.action,
-          remarks
-        });
-      } else if (request.type === 'expense-report') {
-        await API.patch(`/expense-reports/${actionModal.requestId}/approve`, {
-          action: actionModal.action,
-          remarks
-        });
-      }
+      // Only handle expense reports now
+      await API.patch(`/expense-reports/${actionModal.requestId}/approve`, {
+        action: actionModal.action,
+        remarks
+      });
       
       setActionModal(null);
       setRemarks('');

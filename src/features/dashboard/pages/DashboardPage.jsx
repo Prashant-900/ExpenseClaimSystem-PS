@@ -13,7 +13,6 @@ import AuditOverview from '../../expense-reports/pages/AuditOverview';
 import AuditPendingRequests from '../components/AuditPendingRequests';
 import AuditApprovalDashboard from '../../expense-reports/pages/AuditApprovalDashboard';
 import AuditApprovedRequests from '../../expense-reports/pages/AuditApprovedRequests';
-import AuditAllRequestsDashboard from '../components/AuditAllRequestsDashboard';
 import AuditAllDashboard from '../components/AuditAllDashboard';
 import ManagerDashboard from '../components/ManagerDashboard';
 import ManagerPendingDashboard from '../components/ManagerPendingDashboard';
@@ -26,7 +25,6 @@ import FinanceApprovedRequests from '../../expense-reports/pages/FinanceApproved
 import AdminDashboard from '../../admin/components/AdminDashboard';
 import UserManagementDashboard from '../../admin/components/UserManagementDashboard';
 import SystemLogsDashboard from '../../admin/components/SystemLogsDashboard';
-import ReimbursementForm from '../../reimbursements/forms/ReimbursementForm';
 import DraftsDashboard from '../components/DraftsDashboard';
 import ExpenseReportDashboard from '../../expense-reports/components/ExpenseReportDashboard';
 import ExpenseReportApprovalDashboard from '../../expense-reports/components/ExpenseReportApprovalDashboard';
@@ -47,9 +45,6 @@ const DashboardPage = () => {
 
   const renderContent = () => {
     // Student routes
-    if (location.pathname === '/submit') {
-      return <ReimbursementForm onSuccess={() => window.location.href = '/drafts'} />;
-    }
     if (location.pathname === '/drafts') {
       return <DraftsDashboard />;
     }

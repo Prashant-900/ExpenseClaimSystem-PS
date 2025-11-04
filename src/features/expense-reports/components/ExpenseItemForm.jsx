@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Country, State, City } from 'country-state-city';
-import { convertToINR, getSupportedCurrencies, formatCurrency } from '../../../utils/currencyUtils';
+import { convertCurrency, getSupportedCurrencies } from '../../../utils/countryStateData.js';
 import { UPLOAD_URL } from '../../../config/api.js';
 
 const ExpenseItemForm = ({ item, onSave, onCancel }) => {
@@ -28,33 +28,45 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
   const [receiptFile, setReceiptFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(item?.receiptImage || '');
   const [isUploading, setIsUploading] = useState(false);
+  const [amountInINR, setAmountInINR] = useState('');
 
   const [countries] = useState(Country.getAllCountries());
-  const [states, setStates] = useState([]);
-  const [cities, setCities] = useState([]);
+
   const [fromStates, setFromStates] = useState([]);
   const [fromCities, setFromCities] = useState([]);
   const [toStates, setToStates] = useState([]);
   const [toCities, setToCities] = useState([]);
   const [currencies] = useState(getSupportedCurrencies());
 
-  useEffect(() => {
-    if (formData.country) {
-      setStates(State.getStatesOfCountry(formData.country));
-    }
-  }, [formData.country]);
-
-  useEffect(() => {
-    if (formData.state) {
-      setCities(City.getCitiesOfState(formData.country, formData.state));
-    }
-  }, [formData.state, formData.country]);
 
   useEffect(() => {
     if (formData.fromCountry) {
       setFromStates(State.getStatesOfCountry(formData.fromCountry));
     }
   }, [formData.fromCountry]);
+
+  // Update INR amount whenever amount or currency changes
+  useEffect(() => {
+    const updateConvertedAmount = async () => {
+      if (formData.amount) {
+        if (formData.currency !== 'INR') {
+          try {
+            const converted = await convertCurrency(parseFloat(formData.amount), formData.currency, 'INR');
+            setAmountInINR(converted);
+          } catch (error) {
+            console.error('Failed to convert currency:', error);
+            setAmountInINR(parseFloat(formData.amount));
+          }
+        } else {
+          // If currency is already INR, just use the amount as is
+          setAmountInINR(parseFloat(formData.amount));
+        }
+      } else {
+        setAmountInINR('');
+      }
+    };
+    updateConvertedAmount();
+  }, [formData.amount, formData.currency]);
 
   useEffect(() => {
     if (formData.fromState) {
@@ -119,10 +131,9 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
         receiptImageUrl = result.imageUrl;
       }
 
-      const amountInINR = convertToINR(parseFloat(formData.amount), formData.currency);
       onSave({ 
         ...formData, 
-        amountInINR, 
+        amountInINR: parseFloat(amountInINR) || parseFloat(formData.amount) || 0, 
         amount: parseFloat(formData.amount),
         receiptImage: receiptImageUrl
       });
@@ -416,13 +427,13 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
               <label className="block text-sm font-medium mb-1">Currency</label>
               <select name="currency" value={formData.currency} onChange={handleChange} className="w-full p-2 border rounded">
                 {currencies.map(curr => (
-                  <option key={curr.code} value={curr.code}>{curr.symbol} {curr.code}</option>
+                  <option key={curr.code} value={curr.code}>{curr.code}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Amount in INR</label>
-              <input type="text" value={formData.amount ? formatCurrency(convertToINR(parseFloat(formData.amount) || 0, formData.currency), 'INR') : ''} 
+              <input type="text" value={amountInINR && typeof amountInINR === 'number' ? `₹${amountInINR.toFixed(2)}` : ''} 
                      className="w-full p-2 border rounded bg-gray-100" readOnly />
             </div>
           </div>

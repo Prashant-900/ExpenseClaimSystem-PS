@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadToMinio } from '../middleware/fileUploadMiddleware.js';
+import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
 import { authenticate } from '../utils/authorizationMiddleware.js';
 import upload from '../middleware/fileUploadMiddleware.js';
 
@@ -13,7 +13,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const filename = await uploadToMinio(req.file, req.user._id);
+    const filename = await uploadToS3(req.file, req.user._id);
     res.json({ filename, message: 'File uploaded successfully' });
   } catch (error) {
     console.error('Upload error:', error);
@@ -31,8 +31,9 @@ router.post('/expense-receipt', upload.single('receiptImage'), async (req, res) 
       return res.status(400).json({ message: 'No receipt image uploaded' });
     }
 
-    const filename = await uploadToMinio(req.file, req.user._id, 'expense');
-    const imageUrl = `http://localhost:5000/api/images/${filename}`;
+    const filename = await uploadToS3(req.file, req.user._id, 'expense');
+    const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const imageUrl = `${API_BASE_URL}/api/images/${filename}`;
     
     console.log('Upload successful, returning:', { filename, imageUrl });
     res.json({ filename, imageUrl, message: 'Receipt image uploaded successfully' });

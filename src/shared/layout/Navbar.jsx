@@ -19,7 +19,7 @@ const Navbar = () => {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">ExpenseClaim System</h1>
-              <p className="text-xs text-gray-500">Reimbursement Management</p>
+              <p className="text-xs text-gray-500">Expense Report Management</p>
             </div>
           </div>
           

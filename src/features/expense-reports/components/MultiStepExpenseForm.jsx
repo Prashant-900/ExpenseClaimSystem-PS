@@ -3,7 +3,6 @@ import { useAuthStore } from '../../authentication/authStore';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from './ExpenseItemForm';
 import ExpenseItemViewModal from '../components/ExpenseItemViewModal';
-import { formatCurrency } from '../../../utils/currencyUtils';
 
 const MultiStepExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
@@ -323,7 +322,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium">{item.category}</h4>
                       <span className="text-lg font-bold text-gray-800">
-                        {formatCurrency(item.amountInINR, 'INR')}
+                        ₹{item.amountInINR?.toFixed(2) || '0.00'}
                       </span>
                     </div>
                     <p className="text-gray-600 text-sm">{item.description}</p>
@@ -349,7 +348,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total Amount:</span>
                 <span className="text-gray-800">
-                  {formatCurrency(formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0), 'INR')}
+                  ₹{formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0).toFixed(2)}
                 </span>
               </div>
             </div>

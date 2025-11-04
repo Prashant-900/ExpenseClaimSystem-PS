@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
-import { formatCurrency } from '../../../utils/currencyUtils';
 
 const StudentExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
@@ -303,7 +302,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-medium">{item.category}</h4>
                         <span className="text-lg font-bold text-green-600">
-                          {formatCurrency(item.amountInINR, 'INR')}
+                          ₹{item.amountInINR?.toFixed(2) || '0.00'}
                         </span>
                       </div>
                       <p className="text-gray-600 text-sm">{item.description}</p>
@@ -334,7 +333,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span>Total Amount:</span>
                   <span className="text-green-600">
-                    {formatCurrency(formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0), 'INR')}
+                    ₹{formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0).toFixed(2)}
                   </span>
                 </div>
               </div>

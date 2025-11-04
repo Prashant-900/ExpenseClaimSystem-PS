@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../../../shared/services/axios';
-import { useAuthStore } from '../../../features/authentication/authStore';
 
 const ExpenseClaimForm = ({ onSuccess }) => {
-  const { user } = useAuthStore();
   const [drafts, setDrafts] = useState([]);
   const [selectedDrafts, setSelectedDrafts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +59,7 @@ const ExpenseClaimForm = ({ onSuccess }) => {
           });
         }
 
-        return API.post('/reimbursements', formDataToSend, {
+        return API.post('/expense-reports', formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       });

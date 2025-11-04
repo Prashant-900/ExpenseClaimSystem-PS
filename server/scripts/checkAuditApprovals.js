@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 import ExpenseReport from '../models/ExpenseReport.js';
 import User from '../models/User.js';
 
+dotenv.config();
+
 async function checkAuditApprovals() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/expense-claim');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/expense-claim');
     console.log('Connected to MongoDB\n');
 
     // Find all audit users

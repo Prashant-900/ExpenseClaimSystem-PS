@@ -1,0 +1,23 @@
+# Ignore server folder
+server/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+
+# Build output (if already exists)
+dist/
+build/
+
+# Logs
+*.log
+
+# Git
+.git
+.gitignore
+
+# Docker stuff
+Dockerfile
+docker-compose.yml

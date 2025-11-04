@@ -16,7 +16,7 @@ const StudentDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
+      const { data } = await API.get('/expense-reports');
       setRequests(data);
       setFilteredRequests(data);
     } catch (error) {
@@ -33,9 +33,9 @@ const StudentDashboard = () => {
     }
     
     const filtered = requests.filter(request => 
-      request.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.amount?.toString().includes(searchTerm)
+      request.purposeOfExpense?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.reportType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.totalAmount?.toString().includes(searchTerm)
     );
     setFilteredRequests(filtered);
   };
@@ -43,19 +43,15 @@ const StudentDashboard = () => {
   const handleFilter = (filters) => {
     let filtered = [...requests];
     
-    if (filters.expenseType) {
-      filtered = filtered.filter(request => request.expenseType === filters.expenseType);
-    }
-    
     if (filters.status) {
       filtered = filtered.filter(request => request.status === filters.status);
     }
     
     if (filters.amountRange) {
-      const [min, max] = filters.amountRange.split('-').map(v => v.replace('+', '').replace('$', ''));
+      const [min, max] = filters.amountRange.split('-').map(v => v.replace('+', '').replace('₹', ''));
       filtered = filtered.filter(request => {
-        const amount = request.amount;
-        if (filters.amountRange === '1000+') return amount >= 1000;
+        const amount = request.totalAmount;
+        if (filters.amountRange === '100000+') return amount >= 100000;
         return amount >= parseInt(min) && amount <= parseInt(max);
       });
     }
@@ -76,14 +72,13 @@ const StudentDashboard = () => {
     <div className="space-y-6">
       <div className="border-b border-gray-200 pb-4">
         <h1 className="text-2xl font-bold text-gray-900">My Requests</h1>
-        <p className="mt-1 text-gray-600">Track the status of your submitted reimbursement requests</p>
+        <p className="mt-1 text-gray-600">Track the status of your submitted expense reports</p>
       </div>
 
       <SearchAndFilter 
         onSearch={handleSearch}
         onFilter={handleFilter}
         showFilters={{
-          expenseType: true,
           status: true,
           amountRange: true
         }}
@@ -97,7 +92,7 @@ const StudentDashboard = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
           <p className="text-gray-500 mb-6">Submit your first reimbursement request to get started!</p>
           <button
-            onClick={() => window.location.href = '/submit'}
+            onClick={() => window.location.href = '/expense-claim'}
             className="flex items-center gap-2 mx-auto px-6 py-3 bg-gray-800 text-white font-medium rounded-md hover:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
           >
             <HiOutlinePlus className="w-4 h-4" />
@@ -107,7 +102,7 @@ const StudentDashboard = () => {
       ) : (
         <div className="space-y-6">
           <div className="text-sm text-gray-600 mb-4">
-            Showing {filteredRequests.length} of {requests.length} requests
+            Showing {filteredRequests.length} of {requests.length} reports
           </div>
           {filteredRequests.map((request) => (
             <ExpenseCard

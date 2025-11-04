@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API from '../../../shared/services/axios';
 import { useAuthStore } from '../../../features/authentication/authStore';
-import { countries, getCountryByCode, getStatesByCountry, getCitiesByState, convertCurrency, formatCurrency, calculateDistance } from '../../../utils/countryStateData';
+import { countries, getCountryByCode, getStatesByCountry, getCitiesByState, convertCurrency, calculateDistance } from '../../../utils/countryStateData';
+import { getImageUrl } from '../../../config/api';
 
 const EditDraftForm = ({ onSuccess }) => {
   const { id } = useParams();
@@ -26,6 +27,7 @@ const EditDraftForm = ({ onSuccess }) => {
   const [existingImages, setExistingImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [convertedAmountINR, setConvertedAmountINR] = useState(0);
 
   const expenseTypes = ['Travel', 'Meal', 'Accommodation', 'Office Supplies', 'Misc'];
   const travelModes = ['Flight', 'Train', 'Taxi', 'Personal Car', 'Bus', 'Other'];
@@ -36,12 +38,37 @@ const EditDraftForm = ({ onSuccess }) => {
   const originCities = getCitiesByState(formData.country, formData.originState);
   const destinationCities = getCitiesByState(formData.country, formData.destinationState);
   const accommodationCities = getCitiesByState(formData.country, formData.accommodationState);
-  
-  const amountInINR = selectedCountry ? convertCurrency(parseFloat(formData.amount) || 0, formData.country, 'IN') : 0;
 
   useEffect(() => {
+    const fetchDraft = async () => {
+      try {
+        const { data } = await API.get(`/drafts/${id}`);
+        setFormData(data);
+        setExistingImages(data.images || []);
+      } catch {
+        setError('Failed to load draft');
+      }
+    };
     fetchDraft();
   }, [id]);
+  
+  // Update converted amount whenever amount or country changes
+  useEffect(() => {
+    const updateConvertedAmount = async () => {
+      if (formData.amount && selectedCountry?.currency && selectedCountry.currency !== 'INR') {
+        try {
+          const converted = await convertCurrency(parseFloat(formData.amount), selectedCountry.currency, 'INR');
+          setConvertedAmountINR(converted);
+        } catch (error) {
+          console.error('Failed to convert currency:', error);
+          setConvertedAmountINR(parseFloat(formData.amount));
+        }
+      } else {
+        setConvertedAmountINR(parseFloat(formData.amount) || 0);
+      }
+    };
+    updateConvertedAmount();
+  }, [formData.amount, selectedCountry?.currency]);
   
   // Auto-calculate distance when origin and destination cities change
   useEffect(() => {
@@ -63,16 +90,6 @@ const EditDraftForm = ({ onSuccess }) => {
       accommodationCity: ''
     }));
   }, [formData.country]);
-
-  const fetchDraft = async () => {
-    try {
-      const { data } = await API.get(`/drafts/${id}`);
-      setFormData(data);
-      setExistingImages(data.images || []);
-    } catch (error) {
-      setError('Failed to load draft');
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -390,9 +407,9 @@ const EditDraftForm = ({ onSuccess }) => {
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 />
-                {formData.amount && selectedCountry && formData.country !== 'IN' && (
+                {formData.amount && selectedCountry && selectedCountry.currency !== 'INR' && (
                   <div className="mt-1 text-sm text-gray-600">
-                    ≈ ₹{amountInINR.toFixed(2)} INR
+                    ≈ ₹{convertedAmountINR.toFixed(2)} INR
                   </div>
                 )}
               </div>
@@ -418,7 +435,7 @@ const EditDraftForm = ({ onSuccess }) => {
                   {existingImages.map((image, index) => (
                     <img
                       key={index}
-                      src={`http://localhost:5000/api/images/${image}`}
+                      src={getImageUrl(image)}
                       alt={`Current ${index + 1}`}
                       className="w-20 h-20 object-cover rounded border"
                     />

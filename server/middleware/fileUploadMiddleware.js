@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { minioClient, minioAvailable } from '../config/minio.js';
+import { s3Client, s3Available } from '../config/s3.js';
 
 const storage = multer.memoryStorage();
 
@@ -15,35 +15,39 @@ const upload = multer({
   }
 });
 
-export const uploadToMinio = async (file, userId, type = 'general') => {
+export const uploadToS3 = async (file, userId, type = 'general') => {
   try {
-    if (!minioAvailable || !minioClient) {
-      console.warn('MinIO not available - skipping upload');
+    if (!s3Available || !s3Client) {
+      console.warn('AWS S3 not available - skipping upload');
       return null; // caller should handle null (no image)
     }
 
-    let fileName;
+    let key;
     if (type === 'profile') {
-      fileName = `profiles/${userId}/profile.jpg`;
+      key = `profiles/${userId}/profile.jpg`;
     } else if (type === 'expense') {
-      fileName = `expenses/${userId}/${Date.now()}-${file.originalname}`;
+      key = `expenses/${userId}/${Date.now()}-${file.originalname}`;
     } else {
-      fileName = `users/${userId}/${Date.now()}-${file.originalname}`;
+      key = `receipts/${userId}/${Date.now()}-${file.originalname}`;
     }
 
-    console.log('Uploading to MinIO:', fileName);
-    await minioClient.putObject(
-      process.env.MINIO_BUCKET,
-      fileName,
-      file.buffer,
-      file.size,
-      { 'Content-Type': file.mimetype }
-    );
+    console.log('Uploading to AWS S3:', key);
+    
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype
+    };
 
-    console.log('Upload successful:', fileName);
-    return fileName;
+    await s3Client.upload(params).promise();
+
+    console.log('Upload successful:', key);
+    
+    // Return the S3 object key
+    return key;
   } catch (error) {
-    console.error('MinIO upload error:', error);
+    console.error('AWS S3 upload error:', error);
     throw error;
   }
 };

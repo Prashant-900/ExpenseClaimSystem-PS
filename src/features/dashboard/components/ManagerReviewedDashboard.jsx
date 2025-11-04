@@ -15,8 +15,8 @@ const ManagerReviewedPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements/student-requests');
-      const reviewed = data.filter(r => r.status !== 'Pending - Faculty');
+      const { data } = await API.get('/expense-reports');
+      const reviewed = data.filter(r => r.status !== 'Draft' && r.status !== 'Submitted');
       setRequests(reviewed);
       setFilteredRequests(reviewed);
     } catch (error) {

@@ -13,23 +13,13 @@ const AuditAllDashboard = () => {
 
   const fetchReports = async () => {
     try {
-      // Fetch both processed expense reports and reimbursements
-      const [expenseReportResponse, reimbursementResponse] = await Promise.all([
-        API.get('/expense-reports?all=true'),
-        API.get('/reimbursements')
-      ]);
+      // Fetch only expense reports
+      const expenseReportResponse = await API.get('/expense-reports?all=true');
       
       const expenseReports = expenseReportResponse.data;
-      const processedReimbursements = reimbursementResponse.data.filter(req => 
-        ['Pending - Finance Review', 'Completed', 'Rejected'].includes(req.status) && 
-        (req.auditRemarks || req.status !== 'Pending - Finance Review')
-      );
       
-      // Combine both types with type identifier
-      const allReports = [
-        ...expenseReports.map(report => ({ ...report, type: 'expense-report' })),
-        ...processedReimbursements.map(req => ({ ...req, type: 'reimbursement' }))
-      ];
+      // Map reports with type identifier
+      const allReports = expenseReports.map(report => ({ ...report, type: 'expense-report' }));
       
       // Sort by creation date
       allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -60,13 +50,8 @@ const AuditAllDashboard = () => {
       ) : (
         <div className="space-y-6">
           {reports.map((report) => {
-            const isReimbursement = report.type === 'reimbursement';
-            const submitter = isReimbursement ? 
-              (report.studentId || report.facultySubmitterId) : 
-              report.submitterId;
-            const submitterRole = isReimbursement ? 
-              (report.studentId ? 'Student' : 'Faculty') : 
-              report.submitterRole;
+            const submitter = report.submitterId;
+            const submitterRole = report.submitterRole;
             
             return (
               <div key={report._id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
@@ -94,25 +79,19 @@ const AuditAllDashboard = () => {
                           {submitter?.name}
                         </button>
                         {' - '}
-                        {isReimbursement ? report.title : report.purposeOfExpense}
+                        {report.purposeOfExpense}
                       </h3>
                       <p className="text-gray-600 mt-1">
-                        {isReimbursement ? report.expenseType : report.reportType} ({submitterRole})
+                        {report.reportType} ({submitterRole})
                       </p>
-                      {isReimbursement ? (
-                        <p className="text-sm text-gray-500">
-                          Date: {new Date(report.expenseDate).toLocaleDateString()}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Period: {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-500">
+                        Period: {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">
-                      {isReimbursement ? `$${report.amount}` : `₹${report.totalAmount?.toFixed(2) || '0.00'}`}
+                      ₹{report.totalAmount?.toFixed(2) || '0.00'}
                     </p>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       report.status === 'Audit Approved' || report.status === 'Finance Approved' || report.status === 'Completed' ? 
@@ -125,18 +104,15 @@ const AuditAllDashboard = () => {
                 
                 <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                   <div>
-                    <span className="font-medium">Type:</span> {isReimbursement ? 'Reimbursement' : 'Expense Report'}
+                    <span className="font-medium">Type:</span> Expense Report
                   </div>
                   <div>
-                    <span className="font-medium">{isReimbursement ? 'Images' : 'Items'}:</span> 
-                    {isReimbursement ? (report.images?.length || 0) : (report.items?.length || 0)}
+                    <span className="font-medium">Items:</span> 
+                    {report.items?.length || 0}
                   </div>
                   <div>
                     <span className="font-medium">Processed:</span> 
-                    {isReimbursement ? 
-                      (report.approvedByAudit ? new Date(report.approvedByAudit).toLocaleDateString() : 'N/A') :
-                      (report.auditApproval?.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A')
-                    }
+                    {report.auditApproval?.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>
 

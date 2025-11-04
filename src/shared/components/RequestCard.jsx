@@ -2,24 +2,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
 import StatusBadge from './StatusBadge';
 import { getProfileImageUrl } from '../../utils/fileUploadUtils';
-import { generateReimbursementPDF } from '../../utils/pdfGenerator';
 import { HiOutlineUser, HiOutlineCheck, HiOutlineXMark, HiOutlineArrowUturnLeft, HiOutlinePrinter } from 'react-icons/hi2';
 
 const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
-  // Handle both reimbursement and expense report types
-  const isReimbursement = request.type === 'reimbursement';
-  const isExpenseReport = request.type === 'expense-report';
-  
   // Debug: Log the request details
   console.log('Request details:', {
     id: request._id,
     status: request.status,
     userRole,
-    showActions,
-    type: request.type
+    showActions
   });
   
   const canApprove = showActions && (
@@ -34,15 +28,10 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
   
   console.log('Can approve:', canApprove, 'for status:', request.status, 'userRole:', userRole);
 
-  // Get submitter info based on request type
+  // Get submitter info (expense reports)
   let submitter, submitterRole;
-  if (isReimbursement) {
-    submitter = request.studentId || request.facultySubmitterId;
-    submitterRole = request.studentId ? 'Student' : 'Faculty';
-  } else if (isExpenseReport) {
-    submitter = request.submitterId;
-    submitterRole = request.submitterRole;
-  }
+  submitter = request.submitterId;
+  submitterRole = request.submitterRole;
 
   const openProfile = () => {
     if (submitter) {
@@ -52,12 +41,8 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
 
   const handlePrintRequest = async () => {
     try {
-      if (isReimbursement) {
-        await generateReimbursementPDF(request);
-      } else {
-        // For expense reports, we'll use a simpler print for now since we have full PDF in the details view
-        alert('Please use the "Print Report" button in the detailed expense report view for a complete PDF.');
-      }
+      // For expense reports, we'll use a simpler print for now since we have full PDF in the details view
+      alert('Please use the "Print Report" button in the detailed expense report view for a complete PDF.');
     } catch (error) {
       console.error('Failed to generate PDF:', error);
       alert('Failed to generate PDF. Please try again.');
@@ -110,89 +95,30 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
       <div className="card-body">
         <div className="flex justify-between items-start mb-4">
         <div>
-          {/* Display title/purpose based on request type */}
-          {isReimbursement && request.title && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.title}</h2>}
-          {isExpenseReport && request.purposeOfExpense && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.purposeOfExpense}</h2>}
+          {/* Display title/purpose for expense reports */}
+          {request.purposeOfExpense && <h2 className="text-xl font-bold text-gray-800 mb-2">{request.purposeOfExpense}</h2>}
           
           {/* Display amount */}
           <h3 className="text-lg font-semibold">
-            {isReimbursement ? `$${request.amount}` : `₹${request.totalAmount?.toFixed(2) || '0.00'}`}
+            ₹{request.totalAmount?.toFixed(2) || '0.00'}
           </h3>
           
           {/* Display description */}
           <p className="text-gray-600">
-            {isReimbursement ? request.description : request.reportType}
+            {request.reportType}
           </p>
           
-          {/* Display type and date */}
-          {isReimbursement && (
-            <>
-              <p className="text-sm text-gray-500">Type: {request.expenseType}</p>
-              {request.expenseDate && (
-                <p className="text-sm text-gray-500">Date: {new Date(request.expenseDate).toLocaleDateString()}</p>
-              )}
-            </>
+          {/* Display expense report specific fields */}
+          <p className="text-sm text-gray-500">Department: {request.department}</p>
+          <p className="text-sm text-gray-500">Items: {request.items?.length || 0}</p>
+          {request.expensePeriodStart && request.expensePeriodEnd && (
+            <p className="text-sm text-gray-500">
+              Period: {new Date(request.expensePeriodStart).toLocaleDateString()} - {new Date(request.expensePeriodEnd).toLocaleDateString()}
+            </p>
           )}
           
-          {isExpenseReport && (
-            <>
-              <p className="text-sm text-gray-500">Department: {request.department}</p>
-              <p className="text-sm text-gray-500">Items: {request.items?.length || 0}</p>
-              {request.expensePeriodStart && request.expensePeriodEnd && (
-                <p className="text-sm text-gray-500">
-                  Period: {new Date(request.expensePeriodStart).toLocaleDateString()} - {new Date(request.expensePeriodEnd).toLocaleDateString()}
-                </p>
-              )}
-            </>
-          )}
-          
-          {/* Dynamic fields based on expense type */}
-          {request.expenseType === 'Travel' && (
-            <div className="text-sm text-gray-500 mt-2">
-              {request.originCity && request.destinationCity && (
-                <p>Route: {request.originCity} → {request.destinationCity}</p>
-              )}
-              {request.travelMode && <p>Mode: {request.travelMode}</p>}
-            </div>
-          )}
-          {request.expenseType === 'Meal' && (
-            <div className="text-sm text-gray-500 mt-2">
-              {request.restaurantName && <p>Restaurant: {request.restaurantName}</p>}
-              {request.mealType && <p>Type: {request.mealType}</p>}
-            </div>
-          )}
-          {request.expenseType === 'Accommodation' && (
-            <div className="text-sm text-gray-500 mt-2">
-              {request.hotelName && <p>Hotel: {request.hotelName}</p>}
-              {request.accommodationCity && <p>Location: {request.accommodationCity}</p>}
-            </div>
-          )}
-          {request.expenseType === 'Office Supplies' && (
-            <div className="text-sm text-gray-500 mt-2">
-              {request.itemName && <p>Item: {request.itemName}</p>}
-              {request.vendorName && <p>Vendor: {request.vendorName}</p>}
-            </div>
-          )}
-          
-          {/* Display images based on request type */}
-          {isReimbursement && request.images && request.images.length > 0 && (
-            <div className="mt-3">
-              <p className="text-sm font-medium text-gray-700 mb-2">Receipt Images:</p>
-              <div className="flex gap-2 flex-wrap">
-                {request.images.map((image, index) => (
-                  <img
-                    key={index}
-                    src={`http://localhost:5000/api/images/${image}`}
-                    alt={`Receipt ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-75"
-                    onClick={() => window.open(`http://localhost:5000/api/images/${image}`, '_blank')}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {isExpenseReport && request.items && request.items.length > 0 && (
+          {/* Display expense items */}
+          {request.items && request.items.length > 0 && (
             <div className="mt-3">
               <p className="text-sm font-medium text-gray-700 mb-2">Expense Items:</p>
               <div className="space-y-1">
@@ -211,16 +137,8 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
         <StatusBadge status={request.status} fundType={request.fundType} />
       </div>
       
-      {/* Display remarks based on request type */}
-      {isReimbursement && (request.auditRemarks || request.financeRemarks) && (
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <h4 className="font-medium text-sm mb-2">Remarks:</h4>
-          {request.auditRemarks && <p className="text-sm">Audit: {request.auditRemarks}</p>}
-          {request.financeRemarks && <p className="text-sm">Finance: {request.financeRemarks}</p>}
-        </div>
-      )}
-      
-      {isExpenseReport && (request.auditApproval?.remarks || request.financeApproval?.remarks || (request.facultyApproval?.remarks && request.submitterRole !== 'Faculty')) && (
+      {/* Display remarks for expense reports */}
+      {(request.auditApproval?.remarks || request.financeApproval?.remarks || (request.facultyApproval?.remarks && request.submitterRole !== 'Faculty')) && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <h4 className="font-medium text-sm mb-2">Remarks:</h4>
           {request.facultyApproval?.remarks && request.submitterRole !== 'Faculty' && <p className="text-sm">Faculty: {request.facultyApproval.remarks}</p>}
@@ -233,12 +151,7 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
           {/* View Details Button */}
           <button
             onClick={() => {
-              if (isExpenseReport) {
-                window.open(`/expense-report/${request._id}`, '_blank');
-              } else {
-                // For reimbursements, show details in modal or new page
-                console.log('View reimbursement details:', request._id);
-              }
+              window.open(`/expense-report/${request._id}`, '_blank');
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
           >

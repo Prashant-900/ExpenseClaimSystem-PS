@@ -1,6 +1,6 @@
 import ExpenseReport from '../models/ExpenseReport.js';
 import User from '../models/User.js';
-import { uploadToMinio } from '../middleware/fileUploadMiddleware.js';
+import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
 import { canUserApprove, getNextApproverRole, getSchoolChair, getDeanSRIC, getDirector } from '../utils/approvalWorkflow.js';
 
 export const createExpenseReport = async (req, res) => {
@@ -34,28 +34,9 @@ export const createExpenseReport = async (req, res) => {
   }
 };
 
-const getProfileImageUrl = async (userId) => {
-  try {
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    const objectPath = `profiles/${userId}/profile.jpg`;
-    
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      return `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      return null;
-    }
-  } catch (error) {
-    return null;
-  }
+const getProfileImageUrl = (userId) => {
+  // Return direct public S3 URL (bucket is public)
+  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${userId}/profile.jpg`;
 };
 
 export const getExpenseReports = async (req, res) => {
@@ -477,7 +458,7 @@ export const addExpenseItem = async (req, res) => {
     
     let receiptFileName = '';
     if (req.file) {
-      receiptFileName = await uploadToMinio(req.file, req.user._id);
+      receiptFileName = await uploadToS3(req.file, req.user._id);
     }
     
     const newItem = {

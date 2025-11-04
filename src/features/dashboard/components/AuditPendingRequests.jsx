@@ -14,16 +14,13 @@ const AuditPendingRequests = () => {
 
   const fetchRequests = async () => {
     try {
-      const reimbursementResponse = await API.get('/reimbursements?pending=true');
       const expenseReportResponse = await API.get('/expense-reports');
       
-      const reimbursements = reimbursementResponse.data;
-      const expenseReports = expenseReportResponse.data;
+      const expenseReports = expenseReportResponse.data.filter(r => 
+        r.status === 'Director Approved' || r.status === 'Dean SRIC Approved'
+      );
       
-      const allRequests = [
-        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
-        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
-      ];
+      const allRequests = expenseReports.map(req => ({ ...req, type: 'expense-report' }));
       
       setRequests(allRequests);
     } catch (error) {
