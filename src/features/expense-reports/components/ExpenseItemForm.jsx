@@ -306,7 +306,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Item Description</label>
+            <label className="block text-sm font-medium mb-1">Item Name</label>
             <input type="text" name="itemDescription" value={formData.itemDescription || ''} onChange={handleChange} className="w-full p-2 border rounded" />
           </div>
           {category.includes('Lab') && (

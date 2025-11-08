@@ -25,14 +25,22 @@ const getProfileImageUrl = async (userId) => {
 export const getUsersByRole = async (req, res) => {
   try {
     const role = req.query.role;
+    const department = req.query.department;
     if (!role) return res.status(400).json({ message: 'Role query param is required' });
 
-    const users = await User.find({ role }).select('-password');
+    const query = { role };
+    if (department) query.department = department;
+
+    console.log('getUsersByRole query:', query);
+    const users = await User.find(query).select('-password');
+    console.log(`Found ${users.length} users matching query`);
+    
     for (const user of users) {
       user.profileImage = await getProfileImageUrl(user._id);
     }
     res.json(users);
   } catch (error) {
+    console.error('Error in getUsersByRole:', error);
     res.status(500).json({ message: error.message });
   }
 };

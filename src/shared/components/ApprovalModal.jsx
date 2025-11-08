@@ -125,77 +125,147 @@ const ApprovalModal = ({ report, onApprove, onReject, onSendBack, onClose, roleN
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-medium text-sm mb-2">Previous Approvals</h4>
               <div className="space-y-2 text-sm text-gray-600">
-                {report.facultyApproval && (
-                  <div className="flex items-start">
-                    <span className="text-green-600 mr-2">✓</span>
-                    <div className="flex-1">
-                      <span className="font-medium">Faculty:</span> {report.facultyName}
-                      {report.facultyApproval.date && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({new Date(report.facultyApproval.date).toLocaleDateString()})
-                        </span>
-                      )}
-                      {report.facultyApproval.remarks && (
-                        <div className="text-xs mt-1 text-gray-500 italic">
-                          "{report.facultyApproval.remarks}"
-                        </div>
-                      )}
+                {/* Render approvalHistory if present */}
+                {report.approvalHistory && report.approvalHistory.length > 0 ? (
+                  report.approvalHistory.map((entry, idx) => (
+                    <div key={idx} className="flex items-start">
+                      <span className={entry.approved ? "text-green-600 mr-2" : "text-red-600 mr-2"}>✓</span>
+                      <div className="flex-1">
+                        <span className="font-medium">{entry.stage}:</span> {entry.approvedBy}
+                        {entry.date && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({new Date(entry.date).toLocaleDateString()})
+                          </span>
+                        )}
+                        {entry.remarks && (
+                          <div className="text-xs mt-1 text-gray-500 italic">
+                            "{entry.remarks}"
+                          </div>
+                        )}
+                        {entry.action === 'sendback' && (
+                          <div className="text-xs mt-1 text-yellow-600 italic">Sent Back</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {report.schoolChairApproval && (
-                  <div className="flex items-start">
-                    <span className="text-green-600 mr-2">✓</span>
-                    <div className="flex-1">
-                      <span className="font-medium">School Chair:</span> {report.schoolChairName || 'Approved'}
-                      {report.schoolChairApproval.date && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({new Date(report.schoolChairApproval.date).toLocaleDateString()})
-                        </span>
-                      )}
-                      {report.schoolChairApproval.remarks && (
-                        <div className="text-xs mt-1 text-gray-500 italic">
-                          "{report.schoolChairApproval.remarks}"
+                  ))
+                ) : (
+                  // Fallback to legacy fields if approvalHistory is missing
+                  <>
+                    {report.facultyApproval && (
+                      <div className="flex items-start">
+                        <span className="text-green-600 mr-2">✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">Faculty:</span> {report.facultyName}
+                          {report.facultyApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.facultyApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.facultyApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.facultyApproval.remarks}"
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {report.deanSRICApproval && (
-                  <div className="flex items-start">
-                    <span className="text-green-600 mr-2">✓</span>
-                    <div className="flex-1">
-                      <span className="font-medium">Dean SRIC:</span> {report.deanSRICName || 'Approved'}
-                      {report.deanSRICApproval.date && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({new Date(report.deanSRICApproval.date).toLocaleDateString()})
-                        </span>
-                      )}
-                      {report.deanSRICApproval.remarks && (
-                        <div className="text-xs mt-1 text-gray-500 italic">
-                          "{report.deanSRICApproval.remarks}"
+                      </div>
+                    )}
+                    {report.schoolChairApproval && (
+                      <div className="flex items-start">
+                        <span className="text-green-600 mr-2">✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">School Chair:</span> {report.schoolChairName || 'Approved'}
+                          {report.schoolChairApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.schoolChairApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.schoolChairApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.schoolChairApproval.remarks}"
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {report.directorApproval && (
-                  <div className="flex items-start">
-                    <span className="text-green-600 mr-2">✓</span>
-                    <div className="flex-1">
-                      <span className="font-medium">Director:</span> {report.directorName || 'Approved'}
-                      {report.directorApproval.date && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({new Date(report.directorApproval.date).toLocaleDateString()})
-                        </span>
-                      )}
-                      {report.directorApproval.remarks && (
-                        <div className="text-xs mt-1 text-gray-500 italic">
-                          "{report.directorApproval.remarks}"
+                      </div>
+                    )}
+                    {report.deanSRICApproval && (
+                      <div className="flex items-start">
+                        <span className="text-green-600 mr-2">✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">Dean SRIC:</span> {report.deanSRICName || 'Approved'}
+                          {report.deanSRICApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.deanSRICApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.deanSRICApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.deanSRICApproval.remarks}"
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    )}
+                    {report.directorApproval && (
+                      <div className="flex items-start">
+                        <span className="text-green-600 mr-2">✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">Director:</span> {report.directorName || 'Approved'}
+                          {report.directorApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.directorApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.directorApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.directorApproval.remarks}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {report.auditApproval && (
+                      <div className="flex items-start">
+                        <span className={report.auditApproval.approved ? "text-green-600 mr-2" : "text-red-600 mr-2"}>✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">Audit:</span> {report.auditApproval.approvedBy || 'Processed'}
+                          {report.auditApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.auditApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.auditApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.auditApproval.remarks}"
+                            </div>
+                          )}
+                          {report.auditApproval.action === 'sendback' && (
+                            <div className="text-xs mt-1 text-yellow-600 italic">Sent Back</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {report.financeApproval && (
+                      <div className="flex items-start">
+                        <span className={report.financeApproval.approved ? "text-green-600 mr-2" : "text-red-600 mr-2"}>✓</span>
+                        <div className="flex-1">
+                          <span className="font-medium">Finance:</span> {report.financeApproval.approvedBy || 'Processed'}
+                          {report.financeApproval.date && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(report.financeApproval.date).toLocaleDateString()})
+                            </span>
+                          )}
+                          {report.financeApproval.remarks && (
+                            <div className="text-xs mt-1 text-gray-500 italic">
+                              "{report.financeApproval.remarks}"
+                            </div>
+                          )}
+                          {report.financeApproval.action === 'sendback' && (
+                            <div className="text-xs mt-1 text-yellow-600 italic">Sent Back</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

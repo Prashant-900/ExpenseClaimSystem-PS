@@ -6,24 +6,29 @@ const WorkflowProgress = ({ report }) => {
   // Determine workflow stages based on fund type
   const getWorkflowStages = () => {
     const fundType = report.fundType;
-    const stages = [
-      {
+    const stages = [];
+
+    // Only add Faculty Review stage if report is submitted by a Student
+    if (report.submitterRole === 'Student') {
+      stages.push({
         id: 1,
         name: 'Faculty Review',
         approval: report.facultyApproval,
         status: report.status,
         activeStatuses: ['Submitted'],
         approver: report.facultyName
-      },
-      {
-        id: 2,
-        name: 'School Chair Review',
-        approval: report.schoolChairApproval,
-        status: report.status,
-        activeStatuses: ['Faculty Approved'],
-        approver: report.schoolChairName
-      }
-    ];
+      });
+    }
+
+    // School Chair stage (starts at id 1 for faculty-created reports, id 2 for student reports)
+    stages.push({
+      id: stages.length + 1,
+      name: 'School Chair Review',
+      approval: report.schoolChairApproval,
+      status: report.status,
+      activeStatuses: report.submitterRole === 'Faculty' ? ['Faculty Approved', 'Submitted'] : ['Faculty Approved'],
+      approver: report.schoolChairName
+    });
 
     // Add conditional middle stages based on fund type
     if (fundType === 'Project Fund') {

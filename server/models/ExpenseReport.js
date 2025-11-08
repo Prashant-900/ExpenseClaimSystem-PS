@@ -147,6 +147,17 @@ const expenseReportSchema = new mongoose.Schema({
   auditApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
   financeApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
   
+  // Unified approval history (new). Each entry captures the stage and metadata.
+  approvalHistory: [{
+    stage: { type: String, enum: ['Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance'] },
+    approved: Boolean,
+    date: Date,
+    remarks: String,
+    action: String, // e.g., 'sendback'
+    approvedBy: String,
+    approvedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
+  
   submissionDate: { type: Date }
 }, { timestamps: true });
 
