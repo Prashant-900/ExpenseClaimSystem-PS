@@ -60,12 +60,12 @@ const ApprovalModal = ({ report, onApprove, onReject, onSendBack, onClose, roleN
   const getWorkflowPath = (fundType) => {
     switch (fundType) {
       case 'Institute Fund':
-        return 'Faculty → School Chair → Director → Audit → Finance';
+        return 'Faculty → School Chairperson → Director → Audit → Finance';
       case 'Project Fund':
-        return 'Faculty → School Chair → Dean SRIC → Audit → Finance';
+        return 'Faculty → School Chairperson → Dean SRIC → Audit → Finance';
       case 'Department/School Fund':
       case 'Professional Development Allowance':
-        return 'Faculty → School Chair → Audit → Finance';
+        return 'Faculty → School Chairperson → Audit → Finance';
       default:
         return 'Standard workflow';
     }
@@ -173,7 +173,7 @@ const ApprovalModal = ({ report, onApprove, onReject, onSendBack, onClose, roleN
                       <div className="flex items-start">
                         <span className="text-green-600 mr-2">✓</span>
                         <div className="flex-1">
-                          <span className="font-medium">School Chair:</span> {report.schoolChairName || 'Approved'}
+                          <span className="font-medium">School Chairperson:</span> {report.schoolChairName || 'Approved'}
                           {report.schoolChairApproval.date && (
                             <span className="text-xs text-gray-500 ml-2">
                               ({new Date(report.schoolChairApproval.date).toLocaleDateString()})
@@ -297,13 +297,20 @@ const ApprovalModal = ({ report, onApprove, onReject, onSendBack, onClose, roleN
                       <div><span className="font-medium">Payment:</span> {item.paymentMethod}</div>
                     </div>
                     {item.receiptImage && (
-                      <div className="mt-2">
+                      <div className="mt-2 flex gap-3">
                         <button
                           type="button"
                           onClick={() => window.open(item.receiptImage, '_blank')}
                           className="text-xs text-blue-600 hover:text-blue-800 underline"
                         >
                           View Receipt
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/expense-report/${report._id}`, '_blank')}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Details
                         </button>
                       </div>
                     )}

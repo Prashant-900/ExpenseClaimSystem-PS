@@ -97,7 +97,7 @@ const SchoolChairOverview = () => {
     <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">School Chair Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">School Chairperson Dashboard</h1>
           <p className="text-gray-600 mt-2">
             Welcome back, {user?.name} - {user?.department}
           </p>

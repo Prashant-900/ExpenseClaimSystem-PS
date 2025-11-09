@@ -100,7 +100,7 @@ const DeanSRICDashboard = () => {
       {/* Info Box */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-900">
-            <span className="font-semibold">Your Role:</span> As Dean SRIC, you review all Project Fund expenses that have been approved by School Chairs. These expenses require your approval before proceeding to Audit.
+            <span className="font-semibold">Your Role:</span> As Dean SRIC, you review all Project Fund expenses that have been approved by School Chairpersons. These expenses require your approval before proceeding to Audit.
           </p>
         </div>
 
@@ -154,6 +154,12 @@ const DeanSRICDashboard = () => {
             <option value="SPS">SPS</option>
             <option value="SoM">SoM</option>
             <option value="SHSS">SHSS</option>
+            <option value="CAIR">CAIR</option>
+            <option value="IKSMHA">IKSMHA</option>
+            <option value="AMRC">AMRC</option>
+            <option value="CQST">CQST</option>
+            <option value="C4DFED">C4DFED</option>
+            <option value="BioX Centre">BioX Centre</option>
           </select>
         </div>
 
@@ -222,7 +228,7 @@ const DeanSRICDashboard = () => {
                     <div>✓ Faculty: {report.facultyApproval.approvedBy}</div>
                   )}
                   {report.schoolChairApproval?.approved && (
-                    <div>✓ School Chair: {report.schoolChairApproval.approvedBy}</div>
+                    <div>✓ School Chairperson: {report.schoolChairApproval.approvedBy}</div>
                   )}
                 </div>
               </div>

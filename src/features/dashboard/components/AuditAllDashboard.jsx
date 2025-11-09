@@ -112,7 +112,7 @@ const AuditAllDashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">
-                      {isReimbursement ? `$${report.amount}` : `₹${report.totalAmount?.toFixed(2) || '0.00'}`}
+                      {isReimbursement ? `₹${report.amount}` : `₹${report.totalAmount?.toFixed(2) || '0.00'}`}
                     </p>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       report.status === 'Audit Approved' || report.status === 'Finance Approved' || report.status === 'Completed' ? 

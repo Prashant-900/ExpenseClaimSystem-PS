@@ -163,7 +163,7 @@ const FacultyApprovedRequests = () => {
             >
               <option value="all">All Statuses</option>
               <option value="Faculty Approved">Faculty Approved</option>
-              <option value="School Chair Approved">School Chair Approved</option>
+              <option value="School Chairperson Approved">School Chairperson Approved</option>
               <option value="Dean SRIC Approved">Dean SRIC Approved</option>
               <option value="Director Approved">Director Approved</option>
               <option value="Audit Approved">Audit Approved</option>

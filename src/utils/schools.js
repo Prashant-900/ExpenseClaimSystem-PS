@@ -7,7 +7,13 @@ export const SCHOOLS = [
   { value: 'SMSS', label: 'SMSS - School of Mathematical and Statistical Sciences' },
   { value: 'SPS', label: 'SPS - School of Physical Sciences' },
   { value: 'SoM', label: 'SoM - School of Management' },
-  { value: 'SHSS', label: 'SHSS - School of Humanities and Social Sciences' }
+  { value: 'SHSS', label: 'SHSS - School of Humanities and Social Sciences' },
+  { value: 'CAIR', label: 'CAIR - Centre for Advanced Interdisciplinary Research' },
+  { value: 'IKSMHA', label: 'IKSMHA - Indian Knowledge System and Mental Health Applications' },
+  { value: 'AMRC', label: 'AMRC - Advanced Materials Research Centre' },
+  { value: 'CQST', label: 'CQST - Centre for Quantum Science and Technology' },
+  { value: 'C4DFED', label: 'C4DFED - Centre for Design, Fabrication and Entrepreneurship Development' },
+  { value: 'BioX Centre', label: 'BioX Centre - Biological and Biomedical Sciences' }
 ];
 
 export const FUND_TYPES = [

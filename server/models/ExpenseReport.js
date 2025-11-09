@@ -92,7 +92,7 @@ const expenseReportSchema = new mongoose.Schema({
   
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS']
+    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS', 'CAIR', 'IKSMHA', 'AMRC', 'CQST', 'C4DFED', 'BioX Centre']
   },
   expenseReportDate: { type: Date, default: Date.now },
   expensePeriodStart: { type: Date, required: true },

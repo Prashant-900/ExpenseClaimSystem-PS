@@ -153,6 +153,12 @@ const FinanceApprovalDashboard = () => {
           <option value="SPS">SPS</option>
           <option value="SoM">SoM</option>
           <option value="SHSS">SHSS</option>
+          <option value="CAIR">CAIR</option>
+          <option value="IKSMHA">IKSMHA</option>
+          <option value="AMRC">AMRC</option>
+          <option value="CQST">CQST</option>
+          <option value="C4DFED">C4DFED</option>
+          <option value="BioX Centre">BioX Centre</option>
         </select>
       </div>
 
@@ -221,7 +227,7 @@ const FinanceApprovalDashboard = () => {
                   <div>✓ Faculty: {report.facultyApproval.approvedBy}</div>
                 )}
                 {report.schoolChairApproval?.approved && (
-                  <div>✓ School Chair: {report.schoolChairApproval.approvedBy}</div>
+                  <div>✓ School Chairperson: {report.schoolChairApproval.approvedBy}</div>
                 )}
                 {report.deanSRICApproval?.approved && (
                   <div>✓ Dean SRIC: {report.deanSRICApproval.approvedBy}</div>

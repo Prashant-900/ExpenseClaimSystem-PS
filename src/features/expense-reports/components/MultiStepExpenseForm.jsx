@@ -247,9 +247,9 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                   <input type="text" name="studentName" value={formData.studentName} className="w-full p-2 border rounded bg-gray-100" disabled />
                 </div>
                <div>
-                 <label className="block text-sm font-medium mb-2">School *</label>
+                 <label className="block text-sm font-medium mb-2">School/Centre *</label>
                  <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" required>
-                   <option value="">Select School</option>
+                   <option value="">Select School/Centre</option>
                    <option value="SCEE">SCEE</option>
                    <option value="SMME">SMME</option>
                    <option value="SCENE">SCENE</option>
@@ -259,6 +259,12 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                    <option value="SPS">SPS</option>
                    <option value="SoM">SoM</option>
                    <option value="SHSS">SHSS</option>
+                   <option value="CAIR">CAIR</option>
+                   <option value="IKSMHA">IKSMHA</option>
+                   <option value="AMRC">AMRC</option>
+                   <option value="CQST">CQST</option>
+                   <option value="C4DFED">C4DFED</option>
+                   <option value="BioX Centre">BioX Centre</option>
                  </select>
                </div>
                 {user?.role === 'Student' && (
@@ -304,10 +310,27 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                   <input type="text" name="facultyName" value={formData.facultyName} onChange={handleChange} className="w-full p-2 border rounded" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Department *</label>
+                  <label className="block text-sm font-medium mb-2">Department/School/Centre *</label>
                   <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded">
-                    <option value="SCEE">SCEE</option>
-                    <option value="SMME">SMME</option>
+                    <optgroup label="Schools">
+                      <option value="SCEE">SCEE</option>
+                      <option value="SMME">SMME</option>
+                      <option value="SCENE">SCENE</option>
+                      <option value="SBB">SBB</option>
+                      <option value="SCS">SCS</option>
+                      <option value="SMSS">SMSS</option>
+                      <option value="SPS">SPS</option>
+                      <option value="SoM">SoM</option>
+                      <option value="SHSS">SHSS</option>
+                    </optgroup>
+                    <optgroup label="Centres">
+                      <option value="CAIR">CAIR</option>
+                      <option value="IKSMHA">IKSMHA</option>
+                      <option value="AMRC">AMRC</option>
+                      <option value="CQST">CQST</option>
+                      <option value="C4DFED">C4DFED</option>
+                      <option value="BioX Centre">BioX Centre</option>
+                    </optgroup>
                   </select>
                 </div>
               </div>

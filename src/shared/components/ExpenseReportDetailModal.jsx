@@ -103,7 +103,7 @@ const ExpenseReportDetailModal = ({ reportId, isOpen, onClose }) => {
                     <span className="font-medium">Period:</span> {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
                   </div>
                   <div>
-                    <span className="font-medium">Total Amount:</span> ${report.totalAmount?.toFixed(2) || '0.00'}
+                    <span className="font-medium">Total Amount:</span> ₹{report.totalAmount?.toFixed(2) || '0.00'}
                   </div>
                   <div className="col-span-2">
                     <span className="font-medium">Purpose:</span> {report.purposeOfExpense}

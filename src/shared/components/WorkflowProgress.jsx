@@ -3,133 +3,146 @@ import React from 'react';
 const WorkflowProgress = ({ report }) => {
   if (!report) return null;
 
-  // Determine workflow stages based on fund type
-  const getWorkflowStages = () => {
-    const fundType = report.fundType;
-    const stages = [];
-
-    // Only add Faculty Review stage if report is submitted by a Student
-    if (report.submitterRole === 'Student') {
-      stages.push({
-        id: 1,
-        name: 'Faculty Review',
-        approval: report.facultyApproval,
-        status: report.status,
-        activeStatuses: ['Submitted'],
-        approver: report.facultyName
-      });
-    }
-
-    // School Chair stage (starts at id 1 for faculty-created reports, id 2 for student reports)
-    stages.push({
-      id: stages.length + 1,
-      name: 'School Chair Review',
-      approval: report.schoolChairApproval,
-      status: report.status,
-      activeStatuses: report.submitterRole === 'Faculty' ? ['Faculty Approved', 'Submitted'] : ['Faculty Approved'],
-      approver: report.schoolChairName
-    });
-
-    // Add conditional middle stages based on fund type
-    if (fundType === 'Project Fund') {
-      stages.push({
-        id: 3,
-        name: 'Dean SRIC Review',
-        approval: report.deanSRICApproval,
-        status: report.status,
-        activeStatuses: ['School Chair Approved'],
-        approver: report.deanSRICName,
-        fundTypeSpecific: 'Project Fund'
-      });
-    } else if (fundType === 'Institute Fund') {
-      stages.push({
-        id: 3,
-        name: 'Director Review',
-        approval: report.directorApproval,
-        status: report.status,
-        activeStatuses: ['School Chair Approved'],
-        approver: report.directorName,
-        fundTypeSpecific: 'Institute Fund'
-      });
-    }
-
-    // Add Audit and Finance (common to all)
-    stages.push({
-      id: stages.length + 1,
-      name: 'Audit Review',
-      approval: report.auditApproval,
-      status: report.status,
-      activeStatuses: 
-        fundType === 'Project Fund' ? ['Dean SRIC Approved'] :
-        fundType === 'Institute Fund' ? ['Director Approved'] :
-        ['School Chair Approved'],
-      approver: report.auditName
-    });
-
-    stages.push({
-      id: stages.length + 1,
-      name: 'Finance Review',
-      approval: report.financeApproval,
-      status: report.status,
-      activeStatuses: ['Audit Approved'],
-      approver: report.financeName
-    });
-
-    return stages;
+  // Build complete approval history from both approvalHistory array and legacy approval fields
+  // Helper function to display stage names
+  const getDisplayStageName = (stage) => {
+    return stage === 'School Chair' ? 'School Chairperson' : stage;
   };
 
-  const getStageState = (stage) => {
-    // Check if this stage sent back the report (takes priority)
-    if (stage.approval?.action === 'sendback') {
-      return { state: 'sentback', color: 'bg-yellow-500', badgeColor: 'bg-yellow-100 text-yellow-800' };
+  const buildCompleteHistory = () => {
+    const history = [];
+    const seenEntries = new Set(); // Track unique entries by stage+date to avoid duplicates
+    
+    // Add entries from approvalHistory array (new unified approach)
+    if (report.approvalHistory && report.approvalHistory.length > 0) {
+      report.approvalHistory.forEach(entry => {
+        const key = `${entry.stage}-${entry.date}`;
+        if (!seenEntries.has(key)) {
+          history.push({
+            stage: entry.stage,
+            approved: entry.approved,
+            date: entry.date,
+            remarks: entry.remarks,
+            action: entry.action,
+            approvedBy: entry.approvedBy,
+            approvedById: entry.approvedById
+          });
+          seenEntries.add(key);
+        }
+      });
     }
     
-    // Check if approved
-    if (stage.approval?.approved === true) {
-      return { state: 'approved', color: 'bg-green-500', badgeColor: 'bg-green-100 text-green-800' };
-    }
+    // ALWAYS check legacy fields for any entries not in approvalHistory
+    // This ensures we catch approvals that happened but weren't added to approvalHistory
+    const legacyStages = [
+      { name: 'Faculty', approval: report.facultyApproval, approver: report.facultyName },
+      { name: 'School Chair', approval: report.schoolChairApproval, approver: report.schoolChairName },
+      { name: 'Dean SRIC', approval: report.deanSRICApproval, approver: report.deanSRICName },
+      { name: 'Director', approval: report.directorApproval, approver: report.directorName },
+      { name: 'Audit', approval: report.auditApproval, approver: report.auditName },
+      { name: 'Finance', approval: report.financeApproval, approver: report.financeName }
+    ];
     
-    // Check if rejected
-    if (stage.approval?.approved === false) {
-      return { state: 'rejected', color: 'bg-red-500', badgeColor: 'bg-red-100 text-red-800' };
-    }
+    legacyStages.forEach(legacy => {
+      if (legacy.approval && legacy.approval.date) {
+        const key = `${legacy.name}-${legacy.approval.date}`;
+        if (!seenEntries.has(key)) {
+          history.push({
+            stage: legacy.name,
+            approved: legacy.approval.approved,
+            date: legacy.approval.date,
+            remarks: legacy.approval.remarks,
+            action: legacy.approval.action,
+            approvedBy: legacy.approval.approvedBy || legacy.approver,
+            approvedById: legacy.approval.approvedById
+          });
+          seenEntries.add(key);
+        }
+      }
+    });
     
-    // Special case: If report status is Draft and we're past Faculty stage, 
-    // but no sendback at this stage, it was sent back from a later stage
-    if (report.status === 'Draft' && stage.approval) {
-      // This stage was completed before sendback from another stage
-      if (stage.approval.approved === undefined && !stage.approval.action) {
-        return { state: 'notstarted', color: 'bg-gray-300', badgeColor: 'bg-gray-100 text-gray-600' };
+    // Sort by date to ensure chronological order
+    history.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    return history;
+  };
+
+  // Determine what stage should be shown as "pending" based on current status
+  const getPendingStage = () => {
+    // If status is Draft and there's a send-back in history, pending is first stage
+    if (report.status === 'Draft' && report.approvalHistory && 
+        report.approvalHistory.some(h => h.action === 'sendback')) {
+      // Report was sent back, now pending at first stage
+      if (report.submitterRole === 'Student') {
+        return 'Faculty';
+      } else {
+        return 'School Chair';
       }
     }
     
-    // Check if currently pending (active)
-    if (stage.activeStatuses.includes(report.status)) {
-      return { state: 'pending', color: 'bg-blue-500', badgeColor: 'bg-blue-100 text-blue-800' };
-    }
-    
-    // Not started yet
-    return { state: 'notstarted', color: 'bg-gray-300', badgeColor: 'bg-gray-100 text-gray-600' };
-  };
-
-  const getStageLabel = (stage) => {
-    const stageState = getStageState(stage);
-    
-    switch (stageState.state) {
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'sentback':
-        return 'Sent Back';
-      case 'pending':
-        return 'Pending';
+    // Otherwise determine from status
+    switch (report.status) {
+      case 'Submitted':
+        return report.submitterRole === 'Student' ? 'Faculty' : 'School Chair';
+      case 'Faculty Approved':
+        return 'School Chair';
+      case 'School Chair Approved':
+        if (report.fundType === 'Project Fund') return 'Dean SRIC';
+        if (report.fundType === 'Institute Fund') return 'Director';
+        return 'Audit';
+      case 'Dean SRIC Approved':
+      case 'Director Approved':
+        return 'Audit';
+      case 'Audit Approved':
+        return 'Finance';
       default:
-        return 'Not Started';
+        return null;
     }
   };
 
-  const stages = getWorkflowStages();
+  const getEntryColor = (entry) => {
+    if (entry.action === 'sendback') {
+      return { bg: 'bg-yellow-500', badge: 'bg-yellow-100 text-yellow-800' };
+    } else if (entry.approved === true) {
+      return { bg: 'bg-green-500', badge: 'bg-green-100 text-green-800' };
+    } else if (entry.approved === false) {
+      return { bg: 'bg-red-500', badge: 'bg-red-100 text-red-800' };
+    }
+    return { bg: 'bg-gray-300', badge: 'bg-gray-100 text-gray-600' };
+  };
+
+  const getEntryLabel = (entry) => {
+    if (entry.action === 'sendback') {
+      return 'Sent Back';
+    } else if (entry.approved === true) {
+      return 'Approved';
+    } else if (entry.approved === false) {
+      return 'Rejected';
+    }
+    return 'Processed';
+  };
+
+  const history = buildCompleteHistory();
+  const pendingStage = getPendingStage();
+
+  // Add pending stage to display if report is not in final state
+  const displayEntries = [...history];
+  
+  // Only add pending stage if:
+  // 1. There is a pending stage AND
+  // 2. Report is not in final state AND
+  // 3. The last entry in history is not already for this pending stage (to avoid showing it twice)
+  if (pendingStage && !['Finance Approved', 'Rejected', 'Completed'].includes(report.status)) {
+    const lastEntry = displayEntries[displayEntries.length - 1];
+    const shouldAddPending = !lastEntry || lastEntry.stage !== pendingStage || lastEntry.action === 'sendback';
+    
+    if (shouldAddPending) {
+      displayEntries.push({
+        stage: pendingStage,
+        isPending: true
+      });
+    }
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -144,48 +157,50 @@ const WorkflowProgress = ({ report }) => {
         </div>
       )}
 
-      {/* Workflow Stages */}
+      {/* Approval History */}
       <div className="space-y-4">
-        {stages.map((stage, index) => {
-          const stageState = getStageState(stage);
-          const isLastStage = index === stages.length - 1;
+        {displayEntries.map((entry, index) => {
+          const colors = entry.isPending 
+            ? { bg: 'bg-blue-500', badge: 'bg-blue-100 text-blue-800' }
+            : getEntryColor(entry);
+          const isLastEntry = index === displayEntries.length - 1;
 
           return (
-            <div key={stage.id}>
+            <div key={`${entry.stage}-${index}`}>
               <div className="flex items-start gap-4">
-                {/* Stage Number Circle */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${stageState.color}`}>
-                  {stage.id}
+                {/* Sequential Number Circle */}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${colors.bg}`}>
+                  {index + 1}
                 </div>
 
-                {/* Stage Details */}
+                {/* Entry Details */}
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-1">
                     <h4 className="font-semibold text-gray-900">
-                      {stage.name}
-                      {stage.fundTypeSpecific && (
+                      {getDisplayStageName(entry.stage)}
+                      {entry.isPending && (
                         <span className="ml-2 text-xs text-gray-500">
-                          ({stage.fundTypeSpecific} only)
+                          (To be reviewed)
                         </span>
                       )}
                     </h4>
-                    <span className={`px-3 py-1 rounded text-xs font-medium ${stageState.badgeColor}`}>
-                      {getStageLabel(stage)}
+                    <span className={`px-3 py-1 rounded text-xs font-medium ${colors.badge}`}>
+                      {entry.isPending ? 'Pending' : getEntryLabel(entry)}
                     </span>
                   </div>
 
-                  {/* Approval Details */}
-                  {stage.approval && (
+                  {/* Approval Details - only show for non-pending entries */}
+                  {!entry.isPending && entry.date && (
                     <div className="mt-2 text-sm bg-gray-50 p-3 rounded">
-                      {stage.approver && (
+                      {entry.approvedBy && (
                         <p className="text-gray-700 mb-1">
-                          <span className="font-medium">By:</span> {stage.approver}
+                          <span className="font-medium">By:</span> {entry.approvedBy}
                         </p>
                       )}
-                      {stage.approval.date && (
+                      {entry.date && (
                         <p className="text-gray-600 mb-1">
                           <span className="font-medium">Date:</span>{' '}
-                          {new Date(stage.approval.date).toLocaleDateString('en-US', {
+                          {new Date(entry.date).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -194,13 +209,13 @@ const WorkflowProgress = ({ report }) => {
                           })}
                         </p>
                       )}
-                      {stage.approval.remarks && (
+                      {entry.remarks && (
                         <div className="mt-2 pt-2 border-t border-gray-200">
                           <p className="text-gray-700">
                             <span className="font-medium">Remarks:</span>
                           </p>
                           <p className="text-gray-600 italic mt-1">
-                            "{stage.approval.remarks}"
+                            "{entry.remarks}"
                           </p>
                         </div>
                       )}
@@ -210,7 +225,7 @@ const WorkflowProgress = ({ report }) => {
               </div>
 
               {/* Connector Line */}
-              {!isLastStage && (
+              {!isLastEntry && (
                 <div className="ml-5 w-0.5 h-6 bg-gray-300"></div>
               )}
             </div>
@@ -241,7 +256,7 @@ const WorkflowProgress = ({ report }) => {
               <span className="font-medium">Rejected</span>
             </div>
           )}
-          {report.status === 'Draft' && (report.facultyApproval || report.schoolChairApproval || report.deanSRICApproval || report.directorApproval || report.auditApproval || report.financeApproval) && (
+          {report.status === 'Draft' && history.some(h => h.action === 'sendback') && (
             <div className="flex items-center text-yellow-600">
               <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />

@@ -63,7 +63,7 @@ const ExpenseReportDashboard = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">${report.totalAmount?.toFixed(2) || '0.00'}</p>
+                  <p className="text-2xl font-bold text-green-600">₹{report.totalAmount?.toFixed(2) || '0.00'}</p>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     report.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
                     report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' :
