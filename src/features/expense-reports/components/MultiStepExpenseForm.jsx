@@ -14,7 +14,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [reportId, setReportId] = useState(null);
   const [formData, setFormData] = useState({
-    studentId: '',
+    studentId: user?.studentId || '',
     studentName: user?.name || '',
     facultyId: '',
     facultyName: user?.name || '',
@@ -127,7 +127,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
       onSuccess?.();
     } catch (error) {
       console.error('Failed to submit report:', error);
-      alert('Failed to submit report. Please try again.');
+      alert(`Failed to submit report: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +153,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
       onSuccess?.();
     } catch (error) {
       console.error('Failed to save draft:', error);
-      alert('Failed to save draft. Please try again.');
+      alert(`Failed to save draft: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -182,15 +182,15 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Student Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Student ID</label>
-                  <input type="text" name="studentId" value={formData.studentId} onChange={handleChange} className="w-full p-2 border rounded" required />
+                  <label className="block text-sm font-medium mb-2">Student ID *</label>
+                  <input type="text" name="studentId" value={formData.studentId} className="w-full p-2 border rounded bg-gray-100" disabled />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Student Name</label>
-                  <input type="text" name="studentName" value={formData.studentName} onChange={handleChange} className="w-full p-2 border rounded" required />
+                  <label className="block text-sm font-medium mb-2">Student Name *</label>
+                  <input type="text" name="studentName" value={formData.studentName} className="w-full p-2 border rounded bg-gray-100" disabled />
                 </div>
                <div>
-                 <label className="block text-sm font-medium mb-2">School</label>
+                 <label className="block text-sm font-medium mb-2">School *</label>
                  <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" required>
                    <option value="">Select School</option>
                    <option value="SCEE">SCEE</option>
@@ -249,11 +249,11 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Faculty Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Faculty Name</label>
+                  <label className="block text-sm font-medium mb-2">Faculty Name *</label>
                   <input type="text" name="facultyName" value={formData.facultyName} onChange={handleChange} className="w-full p-2 border rounded" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Department</label>
+                  <label className="block text-sm font-medium mb-2">Department *</label>
                   <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded">
                     <option value="SCEE">SCEE</option>
                     <option value="SMME">SMME</option>
@@ -267,19 +267,19 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
             <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Report Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Expense Period Start</label>
+                <label className="block text-sm font-medium mb-2">Expense Period Start *</label>
                 <input type="date" name="expensePeriodStart" value={formData.expensePeriodStart} onChange={handleChange} className="w-full p-2 border rounded" required />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Expense Period End</label>
+                <label className="block text-sm font-medium mb-2">Expense Period End *</label>
                 <input type="date" name="expensePeriodEnd" value={formData.expensePeriodEnd} onChange={handleChange} className="w-full p-2 border rounded" required />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-2">Purpose of Expense</label>
+                <label className="block text-sm font-medium mb-2">Purpose of Expense *</label>
                 <textarea name="purposeOfExpense" value={formData.purposeOfExpense} onChange={handleChange} className="w-full p-2 border rounded" rows="3" required />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Report Type</label>
+                <label className="block text-sm font-medium mb-2">Report Type *</label>
                 <select name="reportType" value={formData.reportType} onChange={handleChange} className="w-full p-2 border rounded">
                   <option value="Teaching-related">Teaching-related</option>
                   <option value="Research-related">Research-related</option>
@@ -289,7 +289,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Cost Center</label>
-                <input type="text" name="costCenter" value={formData.costCenter} onChange={handleChange} className="w-full p-2 border rounded" required />
+                <input type="text" name="costCenter" value={formData.costCenter} onChange={handleChange} className="w-full p-2 border rounded" />
               </div>
             </div>
           </div>
@@ -299,7 +299,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Financial Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Funding Source</label>
+                  <label className="block text-sm font-medium mb-2">Funding Source *</label>
                   <select name="fundingSource" value={formData.fundingSource} onChange={handleChange} className="w-full p-2 border rounded">
                     <option value="Department Budget">Department Budget</option>
                     <option value="Research Grant">Research Grant</option>
@@ -320,7 +320,11 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
           )}
 
           <div className="flex gap-4">
-            <button type="submit" className="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">
+            <button 
+              type="submit" 
+              disabled={formData.expensePeriodStart && formData.expensePeriodEnd && new Date(formData.expensePeriodEnd) < new Date(formData.expensePeriodStart)}
+              className="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Next: Add Expense Items
             </button>
             <button type="button" onClick={() => window.history.back()} className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
