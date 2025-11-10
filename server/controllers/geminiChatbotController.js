@@ -170,7 +170,17 @@ const storeUserContext = async (userId, userContext) => {
 
 export const chatWithBot = async (req, res) => {
   try {
+    // Validate required environment variables
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is not configured');
+      return res.status(500).json({ message: 'Chatbot service is not properly configured' });
+    }
+
     const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
     const userId = req.user._id.toString();
 
     // Get user context
@@ -191,23 +201,35 @@ export const chatWithBot = async (req, res) => {
     }
     const history = conversationHistories.get(userId);
 
-    // Create chat session with history
-    const chat = model.startChat({
-      history: history,
-      generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.7,
-      },
-    });
+    let response;
+    
+    try {
+      // Create chat session with history
+      const chat = model.startChat({
+        history: history,
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.7,
+        },
+      });
 
-    // Create system context message with knowledge base
-    const systemPrompt = createSystemPrompt(userContext);
-    const knowledgeContext = relevantKnowledge ? `\n\nRELEVANT KNOWLEDGE:\n${relevantKnowledge}` : '';
-    const fullMessage = `${systemPrompt}${knowledgeContext}\n\nUser Question: ${message}`;
+      // Create system context message with knowledge base
+      const systemPrompt = createSystemPrompt(userContext);
+      const knowledgeContext = relevantKnowledge ? `\n\nRELEVANT KNOWLEDGE:\n${relevantKnowledge}` : '';
+      const fullMessage = `${systemPrompt}${knowledgeContext}\n\nUser Question: ${message}`;
 
-    // Generate response
-    const result = await chat.sendMessage(fullMessage);
-    const response = result.response.text();
+      // Generate response
+      const result = await chat.sendMessage(fullMessage);
+      response = result.response.text();
+      
+      if (!response) {
+        throw new Error('Empty response from AI model');
+      }
+    } catch (aiError) {
+      console.error('AI service error:', aiError);
+      // Fallback response based on user context
+      response = getFallbackResponse(message, userContext);
+    }
 
     // Update conversation history
     history.push(
@@ -244,7 +266,45 @@ export const chatWithBot = async (req, res) => {
 
   } catch (error) {
     console.error('Chatbot error:', error);
-    res.status(500).json({ message: 'Failed to process chat message' });
+    
+    // Provide more specific error messages
+    if (error.message?.includes('API key')) {
+      return res.status(500).json({ message: 'AI service configuration error' });
+    }
+    
+    if (error.message?.includes('quota') || error.message?.includes('limit') || error.status === 429) {
+      // Use fallback response instead of returning error
+      const fallbackResponse = getFallbackResponse(req.body.message, userContext);
+      
+      // Still save to chat history
+      await ChatHistory.create({
+        userId: req.user._id.toString(),
+        message: req.body.message,
+        response: fallbackResponse,
+        metadata: {
+          userContext: {
+            totalRequests: userContext.totalRequests,
+            pendingRequests: userContext.pendingRequests,
+            completedRequests: userContext.completedRequests,
+          },
+          fallbackUsed: true
+        }
+      });
+      
+      return res.json({
+        response: fallbackResponse,
+        context: {
+          totalRequests: userContext.totalRequests,
+          pendingRequests: userContext.pendingRequests,
+        },
+        fallbackMode: true
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to process chat message',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -285,6 +345,36 @@ export const clearChatHistory = async (req, res) => {
     console.error('Error clearing chat history:', error);
     res.status(500).json({ message: 'Failed to clear chat history' });
   }
+};
+
+// Fallback response when AI service fails
+const getFallbackResponse = (message, userContext) => {
+  const { user, totalRequests, pendingRequests, completedRequests, rejectedRequests } = userContext;
+  
+  const lowerMessage = message.toLowerCase();
+  
+  // Status and requests related queries
+  if (lowerMessage.includes('status') || lowerMessage.includes('request') || lowerMessage.includes('pending')) {
+    return `Hi ${user.name}! Here's your current status:\n\n📊 **Your Requests Summary:**\n• Total Requests: ${totalRequests}\n• Pending: ${pendingRequests}\n• Completed: ${completedRequests}\n• Rejected: ${rejectedRequests}\n\nYou can view detailed status updates on your dashboard.`;
+  }
+  
+  // Submission related queries
+  if (lowerMessage.includes('submit') || lowerMessage.includes('create') || lowerMessage.includes('new')) {
+    return `📝 **To submit a new expense request:**\n\n1. Go to the Submit page\n2. Fill out the expense form with details\n3. Upload receipt images\n4. Submit for review\n\n💡 **Tip:** You can save drafts and submit multiple expenses at once!`;
+  }
+  
+  // Help and how-to queries
+  if (lowerMessage.includes('help') || lowerMessage.includes('how') || lowerMessage.includes('guide')) {
+    return `🤝 **I can help you with:**\n\n• Checking your request status\n• Submitting new expenses\n• Understanding the approval workflow\n• Managing your profile\n• Navigating the system\n\n**Workflow:** Student submits → Faculty reviews → Audit reviews → Finance approves → Completed`;
+  }
+  
+  // Workflow related queries
+  if (lowerMessage.includes('workflow') || lowerMessage.includes('process') || lowerMessage.includes('approval')) {
+    return `📋 **Expense Approval Workflow:**\n\n1. **Student** submits expense request\n2. **Faculty** reviews and approves/rejects\n3. **Audit** reviews approved requests\n4. **Finance** gives final approval\n5. **Completed** - reimbursement processed\n\n${user.role === 'Faculty' ? '💼 As Faculty, you can submit directly to Audit.' : ''}`;
+  }
+  
+  // Default response
+  return `Hello ${user.name}! 👋\n\nI'm your ExpenseClaim assistant. While I'm running in simplified mode right now, I can still help you with:\n\n• **Status Check:** Ask about your requests\n• **Submission Help:** Learn how to submit expenses\n• **System Guide:** Understand the workflow\n\nWhat would you like to know about?`;
 };
 
 // Initialize knowledge base

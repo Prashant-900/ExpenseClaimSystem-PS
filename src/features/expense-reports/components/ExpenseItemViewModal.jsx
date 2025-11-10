@@ -2,23 +2,23 @@ const ExpenseItemViewModal = ({ item, onClose }) => {
   if (!item) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-            <h2 className="text-xl font-bold text-gray-900">Expense Item Details</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+        <div className="p-4 sm:p-6">
+          <div className="flex justify-between items-center mb-4 sm:mb-6 border-b border-gray-200 pb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Expense Item Details</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl sm:text-2xl">×</button>
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                 <div className="text-gray-900">{new Date(item.date).toLocaleDateString()}</div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <div className="text-gray-900">{item.category}</div>
+                <div className="text-gray-900 break-words">{item.category}</div>
               </div>
             </div>
 
@@ -27,7 +27,7 @@ const ExpenseItemViewModal = ({ item, onClose }) => {
               <div className="text-gray-900">{item.description}</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                 <div className="text-gray-900 font-semibold">
@@ -41,7 +41,7 @@ const ExpenseItemViewModal = ({ item, onClose }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <div className="text-gray-900">{item.paymentMethod}</div>
+                <div className="text-gray-900 break-words">{item.paymentMethod}</div>
               </div>
             </div>
 
@@ -79,34 +79,34 @@ const ExpenseItemViewModal = ({ item, onClose }) => {
 
             {/* Category-specific details */}
             {item.category?.startsWith('Travel - Air') && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {item.airline && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Airline</label>
-                    <div className="text-gray-900">{item.airline}</div>
+                    <div className="text-gray-900 break-words">{item.airline}</div>
                   </div>
                 )}
                 {item.flightNumber && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Flight Number</label>
-                    <div className="text-gray-900">{item.flightNumber}</div>
+                    <div className="text-gray-900 break-words">{item.flightNumber}</div>
                   </div>
                 )}
                 {item.ticketClass && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ticket Class</label>
-                    <div className="text-gray-900">{item.ticketClass}</div>
+                    <div className="text-gray-900 break-words">{item.ticketClass}</div>
                   </div>
                 )}
               </div>
             )}
 
             {item.category?.startsWith('Accommodation') && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {item.hotelName && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name</label>
-                    <div className="text-gray-900">{item.hotelName}</div>
+                    <div className="text-gray-900 break-words">{item.hotelName}</div>
                   </div>
                 )}
                 {item.checkInDate && (

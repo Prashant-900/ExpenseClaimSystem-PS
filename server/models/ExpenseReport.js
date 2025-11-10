@@ -22,12 +22,12 @@ const expenseItemSchema = new mongoose.Schema({
   amountInINR: { type: Number, required: true },
   paymentMethod: { 
     type: String, 
-    enum: ['University Credit Card (P-Card)', 'Personal Funds (Reimbursement)', 'Direct Invoice to University'], 
+    enum: ['University Credit Card', 'Personal Funds (Reimbursement)', 'Direct Invoice to University'], 
     required: true 
   },
   receipt: { type: String },
   receiptImage: { type: String, required: true },
-  businessPurpose: { type: String, required: true },
+  businessPurpose: { type: String },
   
   // Location fields
   country: { type: String },
@@ -117,7 +117,7 @@ const expenseReportSchema = new mongoose.Schema({
     enum: ['Department Budget', 'Research Grant', 'Gift/Endowment Fund', 'Cost-Sharing/Matching Fund'], 
     required: true 
   },
-  costCenter: { type: String, required: true },
+  costCenter: { type: String },
   programProjectCode: { type: String },
   businessUnit: { type: String },
   function: { type: String },
