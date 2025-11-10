@@ -1,7 +1,7 @@
 import { useAuthStore } from '../../features/authentication/authStore';
 import { useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '../hooks/useUserRole';
-import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser } from 'react-icons/hi2';
+import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser, HiOutlineBars3 } from 'react-icons/hi2';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuthStore();

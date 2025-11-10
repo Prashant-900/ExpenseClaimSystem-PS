@@ -8,12 +8,11 @@ export const saveUser = async (req, res) => {
     // Get auth from Clerk if available
     const auth = req.auth;
     const provided = req.body || {};
-    const { name, email, department, studentId, role: providedRole, roleno } = provided;
+    const { name, email, department, studentId, role: providedRole } = provided;
 
     console.log('=== saveUser called ===');
     console.log('Request body:', JSON.stringify(provided, null, 2));
     console.log('Auth present:', !!auth);
-    console.log('Extracted roleno:', roleno);
 
     if (!name || !email) {
       const error = ErrorTypes.MISSING_FIELD('name or email');
@@ -49,8 +48,6 @@ export const saveUser = async (req, res) => {
         updateFields.studentId = studentId.trim();
       }
       
-      if (roleno !== undefined) updateFields.roleno = roleno;
-      
       // If user was created without Clerk but now has Clerk ID, update it
       if (userId && user.clerkId !== userId) {
         updateFields.clerkId = userId;
@@ -62,11 +59,10 @@ export const saveUser = async (req, res) => {
         _id: user._id,
         clerkId: user.clerkId,
         email: user.email,
-        roleno: user.roleno,
         role: user.role
       });
     } else {
-      // Determine role: known domains -> specific roles; otherwise default based on email
+      // Determine role: known domains -> specific roles; otherwise default to Faculty
       let role = providedRole || 'Student';
       if (email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
       else if (email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
@@ -74,11 +70,8 @@ export const saveUser = async (req, res) => {
       else if (email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
       else if (email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
       else {
-        // For non-IIT emails, if they have roleno but no studentId, treat as Faculty/Staff
-        // Otherwise, use provided role
-        if (roleno && !studentId) {
-          role = 'Faculty'; // Default to Faculty for external users with roleno
-        }
+        // For non-IIT emails, default to Faculty (external users/collaborators)
+        role = 'Faculty';
       }
 
       // Prepare user data
@@ -87,16 +80,15 @@ export const saveUser = async (req, res) => {
         name,
         email,
         role,
-        department,
-        roleno: roleno || ''
+        department
       };
 
       // Only add studentId if role is Student AND studentId is provided
       if (role === 'Student' && studentId && studentId.trim()) {
         userData.studentId = studentId.trim();
-      } else if (role === 'Student' && email?.endsWith('@students.iitmandi.ac.in')) {
-        // For IIT student emails without studentId, set a placeholder
-        userData.studentId = roleno || email.split('@')[0];
+      } else if (role === 'Student' && email?.endsWith('@students.iitmandi.ac.in') && !studentId) {
+        // For IIT student emails without studentId, use email prefix as fallback
+        userData.studentId = email.split('@')[0];
       }
 
       // Create new user with Clerk ID if available
@@ -106,7 +98,6 @@ export const saveUser = async (req, res) => {
         _id: user._id,
         clerkId: user.clerkId,
         email: user.email,
-        roleno: user.roleno,
         role: user.role,
         studentId: user.studentId
       });
@@ -118,8 +109,7 @@ export const saveUser = async (req, res) => {
       clerkId: user.clerkId,
       role: user.role,
       department: user.department,
-      studentId: user.studentId,
-      roleno: user.roleno
+      studentId: user.studentId
     });
 
     res.json({ 

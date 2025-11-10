@@ -13,10 +13,6 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
-  roleno: {
-    type: String,
-    default: ''
-  },
   phone: { type: String },
   department: { 
     type: String, 

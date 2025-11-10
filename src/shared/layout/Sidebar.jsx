@@ -92,12 +92,61 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="bg-gray-800 text-white w-64 h-full flex flex-col">
-      <div className="p-6 border-b border-gray-600">
-        <h2 className="text-xl font-bold text-white">ExpenseClaim</h2>
-        <div className="mt-2 flex items-center">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></div>
-          <p className="text-gray-300 text-sm font-medium">{userRole}</p>
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" 
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`bg-gray-800 text-white w-64 h-full flex flex-col fixed md:relative z-50 transition-transform duration-300 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
+        <div className="p-6 border-b border-gray-600 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-white">ExpenseClaim</h2>
+            <div className="mt-2 flex items-center">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></div>
+              <p className="text-gray-300 text-sm font-medium">{userRole}</p>
+            </div>
+          </div>
+          
+          {/* Close button for mobile */}
+          <button 
+            onClick={onClose}
+            className="md:hidden text-gray-400 hover:text-white"
+          >
+            <HiOutlineXMark className="w-6 h-6" />
+          </button>
+        </div>
+
+        <nav className="flex-1 p-4">
+          <div className="space-y-1">
+            {getNavItems().map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => onClose()}
+                className={`flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
+                  location.pathname === item.path
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-gray-600">
+          <div className="text-xs text-gray-400">
+            © 2025 ExpenseClaim System
+          </div>
         </div>
       </div>
     </>

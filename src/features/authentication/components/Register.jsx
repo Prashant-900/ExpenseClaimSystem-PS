@@ -11,8 +11,7 @@ const Register = () => {
     email: '',
     password: '',
     department: '',
-    studentId: '',
-    roleno: ''
+    studentId: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,15 +22,7 @@ const Register = () => {
   const { getToken } = useAuth();
   const departments = SCHOOLS.map(s => s.value);
   
-  // Check if email indicates student role and whether it's an IIT Mandi email
-  const validDomains = [
-    '@students.iitmandi.ac.in',
-    '@faculty.iitmandi.ac.in',
-    '@audit.iitmandi.ac.in',
-    '@finance.iitmandi.ac.in',
-    '@admin.iitmandi.ac.in'
-  ];
-  const isIITDomain = validDomains.some(d => formData.email?.endsWith(d));
+  // Check if email indicates student role
   const isStudentEmail = formData.email?.endsWith('@students.iitmandi.ac.in');
 
   const handleSubmit = async (e) => {
@@ -40,7 +31,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // Allow any email. If it's not an IIT Mandi email, the form will require `roleno`.
+      // Validate email format
       if (!formData.email || !formData.email.includes('@')) {
         setError('Please enter a valid email address');
         setIsLoading(false);
@@ -88,7 +79,6 @@ const Register = () => {
         email: formData.email,
         department: formData.department,
         studentId: formData.studentId,
-        roleno: formData.roleno,
         role,
       });
 
@@ -242,22 +232,6 @@ const Register = () => {
               />
               <p className="mt-1 text-xs text-gray-500">
                 Enter your official student ID/roll number
-              </p>
-            </div>
-          )}
-
-          {!isIITDomain && (
-            <div>
-              <input
-                type="text"
-                required
-                className="form-input"
-                placeholder="Role No / ID (required for non-IIT emails)"
-                value={formData.roleno}
-                onChange={(e) => setFormData({ ...formData, roleno: e.target.value.trim() })}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Please enter your role number / external ID so admins can verify your account.
               </p>
             </div>
           )}
