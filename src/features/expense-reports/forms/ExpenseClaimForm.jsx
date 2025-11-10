@@ -87,14 +87,14 @@ const ExpenseClaimForm = ({ onSuccess }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Expense Claim</h1>
-        <p className="mt-1 text-gray-600">Submit your final expense claim using a saved draft</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Submit Expense Claim</h1>
+        <p className="mt-1 text-sm sm:text-base text-gray-600">Submit your final expense claim using a saved draft</p>
       </div>
       
       <div className="max-w-4xl">
-        <div className="bg-white p-8 rounded-lg shadow-md">
+        <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -121,7 +121,7 @@ const ExpenseClaimForm = ({ onSuccess }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Drafts to Submit * (You can select multiple)
                   </label>
-                  <div className="space-y-3 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-4">
+                  <div className="space-y-3 max-h-48 sm:max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3 sm:p-4">
                     {drafts.map((draft) => (
                       <div key={draft._id} className="flex items-start space-x-3">
                         <input
@@ -148,26 +148,26 @@ const ExpenseClaimForm = ({ onSuccess }) => {
                     <h3 className="text-lg font-semibold mb-4">Selected Drafts Summary</h3>
                     <div className="space-y-4">
                       {selectedDraftsData.map((draft) => (
-                        <div key={draft._id} className="bg-white p-4 rounded border">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div key={draft._id} className="bg-white p-3 sm:p-4 rounded border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                             <div><strong>Title:</strong> {draft.title}</div>
                             <div><strong>Amount:</strong> ${draft.amount}</div>
                             <div><strong>Type:</strong> {draft.expenseType}</div>
                             <div><strong>Date:</strong> {new Date(draft.expenseDate).toLocaleDateString()}</div>
-                            <div className="col-span-2"><strong>Description:</strong> {draft.description}</div>
+                            <div className="sm:col-span-2"><strong>Description:</strong> {draft.description}</div>
                             {draft.images && draft.images.length > 0 && (
-                              <div className="col-span-2">
+                              <div className="sm:col-span-2">
                                 <strong>Attachments:</strong> {draft.images.length} image(s)
                               </div>
                             )}
                           </div>
                         </div>
                       ))}
-                      <div className="bg-blue-50 p-4 rounded border-2 border-blue-200">
-                        <div className="text-lg font-semibold text-blue-800">
+                      <div className="bg-blue-50 p-3 sm:p-4 rounded border-2 border-blue-200">
+                        <div className="text-base sm:text-lg font-semibold text-blue-800">
                           Total Amount: ${totalAmount.toFixed(2)}
                         </div>
-                        <div className="text-sm text-blue-600">
+                        <div className="text-xs sm:text-sm text-blue-600">
                           {selectedDraftsData.length} draft(s) selected
                         </div>
                       </div>
@@ -175,13 +175,13 @@ const ExpenseClaimForm = ({ onSuccess }) => {
                   </div>
                 )}
 
-                <div className="pt-6 border-t border-gray-200">
+                <div className="pt-4 sm:pt-6 border-t border-gray-200">
                   <button
                     type="submit"
                     disabled={isLoading || selectedDrafts.length === 0}
-                    className="w-full py-3 px-6 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full py-3 px-4 sm:px-6 bg-green-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isLoading ? 'Submitting Expense Claims...' : `Submit ${selectedDrafts.length} Expense Claim${selectedDrafts.length > 1 ? 's' : ''}`}
+                    {isLoading ? 'Submitting...' : `Submit ${selectedDrafts.length} Claim${selectedDrafts.length > 1 ? 's' : ''}`}
                   </button>
                 </div>
               </>

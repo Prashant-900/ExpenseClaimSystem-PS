@@ -5,7 +5,7 @@ import ErrorBoundary from '../../../shared/components/ErrorBoundary';
 const ExpenseReportPage = () => {
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-2 sm:px-0">
         <ErrorBoundary>
           <ExpenseReportDetails />
         </ErrorBoundary>
