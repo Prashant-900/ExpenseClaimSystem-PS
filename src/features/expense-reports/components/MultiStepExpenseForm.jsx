@@ -59,14 +59,38 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   useEffect(() => {
     const fetchFaculty = async () => {
       try {
+        console.log('Fetching faculty list for student...');
         const { data } = await API.get('/users/list?role=Faculty');
-        setFacultyList(data || []);
+        console.log('Faculty list received:', data);
+        console.log('Number of faculty:', data?.length);
+        
+        if (data && Array.isArray(data)) {
+          // Log each faculty member to debug
+          data.forEach((faculty, index) => {
+            console.log(`Faculty ${index + 1}:`, {
+              name: faculty.name,
+              email: faculty.email,
+              department: faculty.department,
+              _id: faculty._id
+            });
+          });
+          
+          setFacultyList(data);
+          console.log(`Total faculty members loaded: ${data.length}`);
+        } else {
+          console.warn('Invalid faculty data received:', data);
+          setFacultyList([]);
+        }
       } catch (error) {
         console.error('Failed to fetch faculty list:', error);
+        console.error('Error response:', error.response?.data);
+        setFacultyList([]);
       }
     };
 
-    if (userRole === 'Student') fetchFaculty();
+    if (userRole === 'Student') {
+      fetchFaculty();
+    }
   }, [userRole]);
 
   const handleEditItem = (index) => {
@@ -182,7 +206,14 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                </div>
                 {userRole === 'Student' && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Select Faculty for Submission</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Select Faculty for Submission
+                      {facultyList.length > 0 && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({facultyList.length} faculty members available)
+                        </span>
+                      )}
+                    </label>
                     <select
                       name="facultyId"
                       value={formData.facultyId}
@@ -190,12 +221,23 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                         const sel = facultyList.find(f => f._id === e.target.value);
                         setFormData({ ...formData, facultyId: e.target.value, facultyName: sel?.name || '' });
                       }}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border rounded text-sm"
+                      style={{ maxWidth: '100%' }}
                       required
                     >
-                      <option value="">-- Select Faculty --</option>
+                      <option value="">
+                        {facultyList.length === 0 
+                          ? '-- Loading faculty list... --' 
+                          : '-- Select Faculty --'}
+                      </option>
                       {facultyList.map(f => (
-                        <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
+                        <option 
+                          key={f._id} 
+                          value={f._id} 
+                          title={`${f.name || 'No Name'} - ${f.email || 'No Email'}${f.department ? ` - ${f.department}` : ''}`}
+                        >
+                          {f.name || 'No Name'} | {f.email || 'No Email'}{f.department ? ` | ${f.department}` : ''}
+                        </option>
                       ))}
                     </select>
                   </div>

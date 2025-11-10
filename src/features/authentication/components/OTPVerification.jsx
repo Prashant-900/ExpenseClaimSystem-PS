@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useSignIn, useSignUp } from '@clerk/clerk-react';
+import { useSignIn, useSignUp, useClerk } from '@clerk/clerk-react';
 
 const OTPVerification = ({ email, onSuccess, type = 'signin' }) => {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const { signIn, setActive: setActiveSignIn } = useSignIn();
-  const { signUp, setActive: setActiveSignUp } = useSignUp();
+  const { signIn } = useSignIn();
+  const { signUp } = useSignUp();
+  const { setActive } = useClerk();
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -36,7 +37,9 @@ const OTPVerification = ({ email, onSuccess, type = 'signin' }) => {
         });
 
         if (result.status === 'complete') {
-          await setActiveSignIn({ session: result.createdSessionId });
+          await setActive({ session: result.createdSessionId });
+          // Wait for session to fully activate
+          await new Promise(resolve => setTimeout(resolve, 500));
           onSuccess();
         }
       } else {
@@ -46,7 +49,9 @@ const OTPVerification = ({ email, onSuccess, type = 'signin' }) => {
         });
 
         if (result.status === 'complete') {
-          await setActiveSignUp({ session: result.createdSessionId });
+          await setActive({ session: result.createdSessionId });
+          // Wait for session to fully activate
+          await new Promise(resolve => setTimeout(resolve, 500));
           onSuccess();
         }
       }

@@ -5,56 +5,135 @@ import { ErrorTypes } from '../utils/appError.js';
 
 export const saveUser = async (req, res) => {
   try {
-    // Get userId from Clerk auth - handle different patterns
+    // Get auth from Clerk if available
     const auth = req.auth;
-    if (!auth) {
-      const error = ErrorTypes.UNAUTHORIZED();
+    const provided = req.body || {};
+    const { name, email, department, studentId, role: providedRole, roleno } = provided;
+
+    console.log('=== saveUser called ===');
+    console.log('Request body:', JSON.stringify(provided, null, 2));
+    console.log('Auth present:', !!auth);
+    console.log('Extracted roleno:', roleno);
+
+    if (!name || !email) {
+      const error = ErrorTypes.MISSING_FIELD('name or email');
+      console.error('Missing required fields:', { name: !!name, email: !!email });
       return res.status(error.statusCode).json({ message: error.message });
     }
 
-    const userId = auth.userId || auth.sub;
-    if (!userId) {
-      const error = ErrorTypes.UNAUTHORIZED();
-      return res.status(error.statusCode).json({ message: error.message });
+    // Get Clerk user ID if authenticated
+    const userId = auth ? (auth.userId || auth.sub) : null;
+    
+    console.log('Clerk userId:', userId);
+    console.log('Processing user registration for email:', email);
+
+    // Try to find existing user by clerkId or email
+    let user = null;
+    if (userId) {
+      user = await User.findOne({ clerkId: userId });
+      if (!user) {
+        user = await User.findOne({ email });
+      }
+    } else {
+      user = await User.findOne({ email });
     }
 
-    const { name, email, department, studentId } = req.body;
-
-    // Check if user already exists
-    let user = await User.findOne({ clerkId: userId });
+    console.log('Existing user found:', !!user);
 
     if (user) {
-      // Update existing user with registration data
-      user = await User.findByIdAndUpdate(
-        user._id,
-        { department, studentId },
-        { new: true, runValidators: true }
-      );
+      // Update existing user
+      const updateFields = { name, department };
+      
+      // Only update studentId if it's provided and not empty
+      if (studentId && studentId.trim()) {
+        updateFields.studentId = studentId.trim();
+      }
+      
+      if (roleno !== undefined) updateFields.roleno = roleno;
+      
+      // If user was created without Clerk but now has Clerk ID, update it
+      if (userId && user.clerkId !== userId) {
+        updateFields.clerkId = userId;
+      }
+      
+      user = await User.findByIdAndUpdate(user._id, updateFields, { new: true, runValidators: true });
+      
+      console.log('Updated existing user:', {
+        _id: user._id,
+        clerkId: user.clerkId,
+        email: user.email,
+        roleno: user.roleno,
+        role: user.role
+      });
     } else {
-      // Create new user
-      // Determine role based on email domain
-      let role = 'Employee';
+      // Determine role: known domains -> specific roles; otherwise default based on email
+      let role = providedRole || 'Student';
       if (email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
       else if (email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
       else if (email?.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
       else if (email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
       else if (email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
+      else {
+        // For non-IIT emails, if they have roleno but no studentId, treat as Faculty/Staff
+        // Otherwise, use provided role
+        if (roleno && !studentId) {
+          role = 'Faculty'; // Default to Faculty for external users with roleno
+        }
+      }
 
-      user = await User.create({
-        clerkId: userId,
+      // Prepare user data
+      const userData = {
+        clerkId: userId || `local:${email}`,
         name,
         email,
         role,
         department,
-        studentId: studentId || '',
+        roleno: roleno || ''
+      };
+
+      // Only add studentId if role is Student AND studentId is provided
+      if (role === 'Student' && studentId && studentId.trim()) {
+        userData.studentId = studentId.trim();
+      } else if (role === 'Student' && email?.endsWith('@students.iitmandi.ac.in')) {
+        // For IIT student emails without studentId, set a placeholder
+        userData.studentId = roleno || email.split('@')[0];
+      }
+
+      // Create new user with Clerk ID if available
+      user = await User.create(userData);
+      
+      console.log('Created new user:', {
+        _id: user._id,
+        clerkId: user.clerkId,
+        email: user.email,
+        roleno: user.roleno,
+        role: user.role,
+        studentId: user.studentId
       });
     }
+
+    console.log('✅ User saved successfully to MongoDB:', {
+      _id: user._id,
+      email: user.email,
+      clerkId: user.clerkId,
+      role: user.role,
+      department: user.department,
+      studentId: user.studentId,
+      roleno: user.roleno
+    });
 
     res.json({ 
       message: 'User saved successfully',
       user: user.toObject() 
     });
   } catch (error) {
+    console.error('❌ Error in saveUser:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
+    
     const appError = error.code === 11000 
       ? ErrorTypes.DUPLICATE('Email or Student ID')
       : ErrorTypes.INTERNAL_ERROR(error.message);

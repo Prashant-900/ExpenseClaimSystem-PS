@@ -10,6 +10,7 @@ import imageRoutes from './routes/imageRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import chatbotRoutes from './routes/chatbotRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import draftRoutes from './routes/draftRoutes.js';
 import { errorHandler } from './utils/errorHandler.js';
 import { initializeKnowledgeBase } from './controllers/geminiChatbotController.js';
 
@@ -57,6 +58,7 @@ app.use('/api/images', imageRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/drafts', draftRoutes);
 
 
 

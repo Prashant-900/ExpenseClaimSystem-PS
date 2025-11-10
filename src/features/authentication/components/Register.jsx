@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSignUp } from '@clerk/clerk-react';
+import { useSignUp, useAuth } from '@clerk/clerk-react';
 import { SCHOOLS } from '../../../utils/schools';
-import OTPVerification from './OTPVerification';
 import { API_URL } from '../../../config/api';
+import OTPVerification from './OTPVerification';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -11,19 +11,28 @@ const Register = () => {
     email: '',
     password: '',
     department: '',
-    studentId: ''
+    studentId: '',
+    roleno: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
-  const [verifyingEmail, setVerifyingEmail] = useState('');
-  const [registrationData, setRegistrationData] = useState(null);
+  const [pendingUserData, setPendingUserData] = useState(null);
   const navigate = useNavigate();
   const { signUp } = useSignUp();
+  const { getToken } = useAuth();
   const departments = SCHOOLS.map(s => s.value);
   
-  // Check if email indicates student role
-  const isStudentEmail = formData.email.endsWith('@students.iitmandi.ac.in');
+  // Check if email indicates student role and whether it's an IIT Mandi email
+  const validDomains = [
+    '@students.iitmandi.ac.in',
+    '@faculty.iitmandi.ac.in',
+    '@audit.iitmandi.ac.in',
+    '@finance.iitmandi.ac.in',
+    '@admin.iitmandi.ac.in'
+  ];
+  const isIITDomain = validDomains.some(d => formData.email?.endsWith(d));
+  const isStudentEmail = formData.email?.endsWith('@students.iitmandi.ac.in');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,18 +40,9 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // Validate email domain
-      const validDomains = [
-        '@students.iitmandi.ac.in',
-        '@faculty.iitmandi.ac.in',
-        '@audit.iitmandi.ac.in',
-        '@finance.iitmandi.ac.in',
-        '@admin.iitmandi.ac.in'
-      ];
-      
-      const isValidDomain = validDomains.some(domain => formData.email.endsWith(domain));
-      if (!isValidDomain) {
-        setError('Please use an IIT Mandi email address (@students.iitmandi.ac.in, @faculty.iitmandi.ac.in, @audit.iitmandi.ac.in, @finance.iitmandi.ac.in, or @admin.iitmandi.ac.in)');
+      // Allow any email. If it's not an IIT Mandi email, the form will require `roleno`.
+      if (!formData.email || !formData.email.includes('@')) {
+        setError('Please enter a valid email address');
         setIsLoading(false);
         return;
       }
@@ -59,7 +59,19 @@ const Register = () => {
       const firstName = nameParts[0];
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      // Create sign-up with email verification
+      // Determine role client-side for convenience (backend will also enforce defaults)
+      let role = 'Student';
+      if (formData.email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
+      else if (formData.email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
+      else if (formData.email?.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
+      else if (formData.email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
+      else if (formData.email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
+      else {
+        // For non-IIT emails, default to Faculty (external users)
+        role = 'Faculty';
+      }
+
+      // Step 1: Create user in Clerk
       await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
@@ -67,19 +79,20 @@ const Register = () => {
         lastName: lastName,
       });
 
-      // Prepare email verification (OTP)
+      // Step 2: Prepare email verification
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
 
-      // Store registration data for saving to DB after OTP verification
-      setRegistrationData({
-        firstName,
-        lastName,
+      // Store user data to send to backend after OTP verification
+      setPendingUserData({
+        name: `${firstName} ${lastName}`.trim(),
         email: formData.email,
         department: formData.department,
         studentId: formData.studentId,
+        roleno: formData.roleno,
+        role,
       });
 
-      setVerifyingEmail(formData.email);
+      // Show OTP verification
       setShowOTP(true);
     } catch (err) {
       setError(err?.errors?.[0]?.message || 'Registration failed');
@@ -90,37 +103,70 @@ const Register = () => {
 
   const handleOTPSuccess = async () => {
     try {
-      // Save user to database after OTP verification
-      if (registrationData) {
-        const response = await fetch(`${API_URL}/auth/save-user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: `${registrationData.firstName} ${registrationData.lastName}`.trim(),
-            email: registrationData.email,
-            department: registrationData.department,
-            studentId: registrationData.studentId,
-          }),
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          console.error('Failed to save user to database');
-          // Still redirect to dashboard even if DB save fails (user is authenticated)
+      // Wait for Clerk session to be fully established
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Get the auth token from Clerk (retry if needed)
+      let token = null;
+      let retries = 0;
+      while (!token && retries < 5) {
+        try {
+          token = await getToken();
+          if (token) break;
+        } catch (err) {
+          console.log('Waiting for token, retry:', retries + 1);
         }
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retries++;
       }
+
+      if (!token) {
+        console.error('Failed to get auth token after OTP verification');
+        setError('Authentication error. Please try logging in.');
+        // Still try to redirect, user can login
+        setTimeout(() => navigate('/login'), 2000);
+        return;
+      }
+      
+      console.log('Got auth token, saving user to MongoDB...');
+      
+      // After OTP verification, save user to MongoDB with auth token
+      const response = await fetch(`${API_URL}/auth/save-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(pendingUserData),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to save user:', errorData);
+        setError(errorData.message || 'Failed to save user data');
+        // Still redirect to dashboard, data will be saved on next login
+        setTimeout(() => navigate('/dashboard'), 2000);
+        return;
+      }
+
+      console.log('User saved successfully to MongoDB');
+      
+      // Wait a bit more for state to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Registration successful - redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
-      console.error('Error saving user:', err);
-      // Still redirect to dashboard even if there's an error
-      navigate('/dashboard');
+      console.error('Error in handleOTPSuccess:', err);
+      setError(err?.message || 'Failed to save user data');
+      // Still try to redirect, user can login
+      setTimeout(() => navigate('/login'), 2000);
     }
   };
 
   if (showOTP) {
-    return <OTPVerification email={verifyingEmail} onSuccess={handleOTPSuccess} type="signup" />;
+    return <OTPVerification email={formData.email} onSuccess={handleOTPSuccess} type="signup" />;
   }
 
   return (
@@ -148,7 +194,6 @@ const Register = () => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
-          
           <div>
             <input
               type="email"
@@ -197,6 +242,22 @@ const Register = () => {
               />
               <p className="mt-1 text-xs text-gray-500">
                 Enter your official student ID/roll number
+              </p>
+            </div>
+          )}
+
+          {!isIITDomain && (
+            <div>
+              <input
+                type="text"
+                required
+                className="form-input"
+                placeholder="Role No / ID (required for non-IIT emails)"
+                value={formData.roleno}
+                onChange={(e) => setFormData({ ...formData, roleno: e.target.value.trim() })}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Please enter your role number / external ID so admins can verify your account.
               </p>
             </div>
           )}

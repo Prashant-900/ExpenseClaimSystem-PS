@@ -20,10 +20,15 @@ export const attachProfileImagesToUsers = async (users) => {
     throw new Error('users must be an array');
   }
   
-  return users.map(user => ({
-    ...user,
-    profileImage: getProfileImageUrl(user._id)
-  }));
+  return users.map(user => {
+    // Convert mongoose document to plain object if needed
+    const userObj = user.toObject ? user.toObject() : user;
+    
+    return {
+      ...userObj,
+      profileImage: getProfileImageUrl(user._id)
+    };
+  });
 };
 
 /**

@@ -13,14 +13,31 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      // Sign out from Clerk
-      await signOut({ redirectUrl: '/login' });
-      // Clear local store
+      console.log('Logging out...');
+      
+      // Clear local store first
       logout();
+      
+      // Clear any localStorage items
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      // Sign out from Clerk (this will redirect)
+      await signOut({ redirectUrl: '/login' });
+      
+      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback: clear store and redirect
+      
+      // Fallback: force clear everything and redirect
       logout();
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Force redirect to login
       window.location.href = '/login';
     }
   };

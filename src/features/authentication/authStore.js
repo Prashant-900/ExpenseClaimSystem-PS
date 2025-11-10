@@ -20,9 +20,19 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Logout - clears local store (Clerk logout should be handled by useAuth().signOut())
+  // Logout - clears local store and all auth data
   logout: () => {
-    set({ user: null, token: null });
+    console.log('Clearing auth store...');
+    set({ user: null, token: null, isLoading: false });
+    
+    // Clear localStorage and sessionStorage
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+    } catch (err) {
+      console.error('Error clearing storage:', err);
+    }
   },
 
   // Update user

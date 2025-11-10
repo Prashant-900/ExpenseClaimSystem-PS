@@ -28,35 +28,56 @@ export const authenticate = async (req, res, next) => {
     let user = await User.findOne({ clerkId: userId });
     if (!user) {
       // Get email from auth object - handle different Clerk versions
-      const email = auth.user?.primaryEmailAddress?.emailAddress || 
+      const email = auth.sessionClaims?.email ||
+                    auth.user?.primaryEmailAddress?.emailAddress || 
                     auth.email ||
+                    auth.emailAddress ||
                     req.headers['x-clerk-email'];
       
-      // Validate email domain
-      const isValidDomain = VALID_DOMAINS.some(domain => email?.endsWith(domain));
-      if (!isValidDomain) {
-        return res.status(403).json({
-          message: 'Access denied. Please use an IIT Mandi email address (@students.iitmandi.ac.in, @faculty.iitmandi.ac.in, @audit.iitmandi.ac.in, @finance.iitmandi.ac.in, or @admin.iitmandi.ac.in)' 
-        });
+      if (!email) {
+        console.error('❌ Unable to extract email from Clerk auth object');
+        return res.status(401).json({ message: 'Unable to retrieve user email from authentication' });
       }
-
-      const name = req.auth.user?.firstName ? `${req.auth.user?.firstName} ${req.auth.user?.lastName || ''}`.trim() : email;
+      
+      console.log('🔍 User not found in MongoDB, creating new user for email:', email);
+      
+      // Allow all emails - no domain validation required
+      // Determine role based on email domain (IIT emails get specific roles, others default to Faculty)
+      
+      const name = auth.sessionClaims?.firstName ? 
+                   `${auth.sessionClaims.firstName} ${auth.sessionClaims.lastName || ''}`.trim() :
+                   auth.user?.firstName ? 
+                   `${auth.user.firstName} ${auth.user.lastName || ''}`.trim() : 
+                   email;
 
       // Determine role based on email domain
-      let role = 'Employee';
+      let role = 'Faculty'; // Default for all non-IIT emails
       if (email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
       else if (email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
       else if (email?.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
       else if (email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
       else if (email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
 
-      user = await User.create({
+      const userData = {
         clerkId: userId,
         name,
         email,
         role,
-        department: '',
-        studentId: ''
+        department: ''
+      };
+
+      // Only add studentId for Student role
+      if (role === 'Student') {
+        userData.studentId = email.split('@')[0];
+      }
+
+      user = await User.create(userData);
+      
+      console.log('✅ Auto-created user in MongoDB:', {
+        _id: user._id,
+        email: user.email,
+        clerkId: user.clerkId,
+        role: user.role
       });
     }
 
