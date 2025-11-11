@@ -48,7 +48,12 @@ const ChatBot = () => {
 
     try {
       const { data } = await API.post('/chatbot/chat', { message: inputMessage });
-      const botMessage = { type: 'bot', content: data.response, timestamp: new Date() };
+      const botMessage = { 
+        type: 'bot', 
+        content: data.response, 
+        timestamp: new Date(),
+        fallbackMode: data.fallbackMode 
+      };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -83,17 +88,17 @@ const ChatBot = () => {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gray-800 hover:bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-colors"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gray-800 hover:bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-colors"
       >
         {isOpen ? (
-          <HiOutlineXMark className="w-6 h-6" />
+          <HiOutlineXMark className="w-5 h-5 sm:w-6 sm:h-6" />
         ) : (
-          <HiOutlineChatBubbleLeftRight className="w-6 h-6" />
+          <HiOutlineChatBubbleLeftRight className="w-5 h-5 sm:w-6 sm:h-6" />
         )}
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-96 bg-white rounded-md shadow-xl border border-gray-200 flex flex-col z-40">
+        <div className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 w-80 sm:w-96 h-80 sm:h-96 bg-white rounded-md shadow-xl border border-gray-200 flex flex-col z-40">
           <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-800 text-white rounded-t-md">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
@@ -127,13 +132,20 @@ const ChatBot = () => {
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs px-3 py-2 rounded-md text-sm ${
+                  className={`max-w-xs sm:max-w-sm px-3 py-2 rounded-md text-xs sm:text-sm ${
                     message.type === 'user'
                       ? 'bg-gray-800 text-white'
+                      : message.fallbackMode
+                      ? 'bg-yellow-50 text-gray-800 border border-yellow-200'
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  {message.content}
+                  {message.fallbackMode && (
+                    <div className="text-xs text-yellow-600 mb-1 flex items-center gap-1">
+                      <span>⚠️</span> Simplified mode
+                    </div>
+                  )}
+                  <div className="whitespace-pre-line">{message.content}</div>
                 </div>
               </div>
             ))}

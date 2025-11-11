@@ -157,11 +157,11 @@ const ReimbursementForm = ({ onSuccess }) => {
       case 'Travel':
         return (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Origin State</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.originState}
                   onChange={(e) => setFormData({ ...formData, originState: e.target.value, originCity: '' })}
                 >
@@ -174,7 +174,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Origin City</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.originCity}
                   onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
                   disabled={!formData.originState}
@@ -186,11 +186,11 @@ const ReimbursementForm = ({ onSuccess }) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Destination State</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.destinationState}
                   onChange={(e) => setFormData({ ...formData, destinationState: e.target.value, destinationCity: '' })}
                 >
@@ -203,7 +203,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Destination City</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.destinationCity}
                   onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
                   disabled={!formData.destinationState}
@@ -215,11 +215,11 @@ const ReimbursementForm = ({ onSuccess }) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Travel Mode</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.travelMode}
                   onChange={(e) => setFormData({ ...formData, travelMode: e.target.value })}
                 >
@@ -233,19 +233,19 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Distance (km)</label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.distance}
                   onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
                   placeholder="Auto-calculated"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 />
@@ -254,7 +254,7 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 />
@@ -265,12 +265,12 @@ const ReimbursementForm = ({ onSuccess }) => {
       case 'Meal':
         return (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.restaurantName}
                   onChange={(e) => setFormData({ ...formData, restaurantName: e.target.value })}
                 />
@@ -278,7 +278,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.mealType}
                   onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
                 >
@@ -289,12 +289,12 @@ const ReimbursementForm = ({ onSuccess }) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Number of Attendees</label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.attendees}
                   onChange={(e) => setFormData({ ...formData, attendees: e.target.value })}
                 />
@@ -304,7 +304,7 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.perPersonCost}
                   onChange={(e) => setFormData({ ...formData, perPersonCost: e.target.value })}
                 />
@@ -315,12 +315,12 @@ const ReimbursementForm = ({ onSuccess }) => {
       case 'Accommodation':
         return (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.hotelName}
                   onChange={(e) => setFormData({ ...formData, hotelName: e.target.value })}
                 />
@@ -328,7 +328,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.accommodationState}
                   onChange={(e) => setFormData({ ...formData, accommodationState: e.target.value, accommodationCity: '' })}
                 >
@@ -339,11 +339,11 @@ const ReimbursementForm = ({ onSuccess }) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                   value={formData.accommodationCity}
                   onChange={(e) => setFormData({ ...formData, accommodationCity: e.target.value })}
                   disabled={!formData.accommodationState}
@@ -358,7 +358,7 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Check-in Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.checkinDate}
                   onChange={(e) => setFormData({ ...formData, checkinDate: e.target.value })}
                 />
@@ -367,7 +367,7 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Check-out Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.checkoutDate}
                   onChange={(e) => setFormData({ ...formData, checkoutDate: e.target.value })}
                 />
@@ -387,12 +387,12 @@ const ReimbursementForm = ({ onSuccess }) => {
       case 'Office Supplies':
         return (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.itemName}
                   onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
                 />
@@ -401,18 +401,18 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.vendorName}
                   onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
                 />
@@ -421,7 +421,7 @@ const ReimbursementForm = ({ onSuccess }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                   value={formData.invoiceNumber}
                   onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
                 />
@@ -448,10 +448,10 @@ const ReimbursementForm = ({ onSuccess }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Create Reimbursement Request</h1>
-        <p className="mt-1 text-gray-600">Submit your expense reimbursement request</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create Reimbursement Request</h1>
+        <p className="mt-1 text-sm sm:text-base text-gray-600">Submit your expense reimbursement request</p>
       </div>
       
       <div className="max-w-4xl">
@@ -495,14 +495,14 @@ const ReimbursementForm = ({ onSuccess }) => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Expense Type *
             </label>
             <select
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="form-select"
               value={formData.expenseType}
               onChange={(e) => setFormData({ ...formData, expenseType: e.target.value })}
             >
@@ -519,7 +519,7 @@ const ReimbursementForm = ({ onSuccess }) => {
             <input
               type="date"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="form-input"
               value={formData.expenseDate}
               onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
             />
@@ -622,12 +622,12 @@ const ReimbursementForm = ({ onSuccess }) => {
 
         <div className="bg-gray-50 p-4 rounded-lg border">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Student Information</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                className="form-input bg-gray-100 cursor-not-allowed"
                 value={user?.studentId || 'B21001'}
                 disabled
                 readOnly
@@ -637,7 +637,7 @@ const ReimbursementForm = ({ onSuccess }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                className="form-input bg-gray-100 cursor-not-allowed"
                 value={user?.name || 'Student Name'}
                 disabled
                 readOnly
