@@ -124,7 +124,7 @@ const SystemLogsPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    ${log.amount} - {log.title || log.description}
+                    ₹{log.amount} - {log.title || log.description}
                   </p>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     {(log.studentId?.profileImage || log.facultySubmitterId?.profileImage) && (

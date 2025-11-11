@@ -3,7 +3,7 @@ import API from '../../../shared/services/axios';
 import { ROLES } from '../../../utils/roles';
 import { useAuthStore } from '../../../features/authentication/authStore';
 
-const DEPARTMENTS = ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS'];
+const DEPARTMENTS = ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS', 'CAIR', 'IKSMHA', 'AMRC', 'CQST', 'C4DFED', 'BioX Centre'];
 
 const UsersPage = () => {
   const { user: currentUser } = useAuthStore();

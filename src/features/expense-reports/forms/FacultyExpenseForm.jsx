@@ -15,6 +15,8 @@ const FacultyExpenseForm = ({ onSuccess }) => {
     purposeOfExpense: '',
     reportType: 'Teaching-related',
     fundingSource: 'Department Budget',
+    fundType: 'Department/School Fund',
+    projectId: '',
     costCenter: '',
     programProjectCode: '',
     businessUnit: '',
@@ -38,6 +40,13 @@ const FacultyExpenseForm = ({ onSuccess }) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
+    // Validate Project ID when Project Fund is selected
+    if (formData.fundType === 'Project Fund' && !formData.projectId) {
+      setErrorMessage('Project ID is required when Fund Type is "Project Fund".');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -50,7 +59,12 @@ const FacultyExpenseForm = ({ onSuccess }) => {
         totalAmount: formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0)
       };
       
-      await API.post('/expense-reports', reportData);
+      // Create the report (as draft initially)
+      const response = await API.post('/expense-reports', reportData);
+      
+      // Submit the report immediately after creation
+      await API.put(`/expense-reports/${response.data._id}/submit`);
+      
       onSuccess?.();
     } catch (error) {
       console.error('Failed to create report:', error);
@@ -198,6 +212,35 @@ const FacultyExpenseForm = ({ onSuccess }) => {
           <h3 className="text-lg font-semibold mb-4">Financial Information</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium mb-2">Fund Type *</label>
+              <select
+                name="fundType"
+                value={formData.fundType}
+                onChange={handleChange}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="Department/School Fund">Department/School Fund</option>
+                <option value="Institute Fund">Institute Fund</option>
+                <option value="Project Fund">Project Fund</option>
+                <option value="Professional Development Allowance">Professional Development Allowance</option>
+              </select>
+            </div>
+            {formData.fundType === 'Project Fund' && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Project ID *</label>
+                <input
+                  type="text"
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter Project ID"
+                  required
+                />
+              </div>
+            )}
+            <div>
               <label className="block text-sm font-medium mb-2">Funding Source</label>
               <select
                 name="fundingSource"
@@ -219,7 +262,6 @@ const FacultyExpenseForm = ({ onSuccess }) => {
                 value={formData.costCenter}
                 onChange={handleChange}
                 className="w-full p-2 border rounded"
-                required
               />
             </div>
             <div>

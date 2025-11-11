@@ -32,10 +32,13 @@ export const createExpenseReport = async (req, res) => {
       submitterRole: req.user.role
     };
     
-    // For student submissions, don't assign specific faculty
+    // Set department based on submitter
     if (req.user.role === 'Student') {
       reportData.department = req.user.department;
       reportData.studentId = req.user.studentId; // Include student ID in report
+    } else if (req.user.role === 'Faculty') {
+      // Faculty reports should use faculty's department
+      reportData.department = req.user.department;
     }
     
     const report = await ExpenseReport.create(reportData);
@@ -315,8 +318,32 @@ export const submitExpenseReport = async (req, res) => {
     // Determine next status based on submitter role
     if (req.user.role === 'Student') {
       report.status = 'Submitted'; // Goes to Faculty first
+      
+      // Update department to match the assigned faculty's department
+      if (report.facultyId) {
+        const faculty = await User.findById(report.facultyId);
+        if (faculty && faculty.department) {
+          report.department = faculty.department;
+        }
+      }
     } else if (req.user.role === 'Faculty') {
-      report.status = 'Faculty Approved'; // Faculty reports go to Audit
+      // Faculty reports require fund type before submission
+      if (!report.fundType) {
+        return res.status(400).json({ 
+          message: 'Fund type is required for faculty expense reports' 
+        });
+      }
+      
+      // Validate Project ID if Project Fund is selected
+      if (report.fundType === 'Project Fund' && !report.projectId) {
+        return res.status(400).json({ 
+          message: 'Project ID is required when Fund Type is "Project Fund"' 
+        });
+      }
+      
+      report.status = 'Faculty Approved'; // Faculty reports go directly to workflow
+      report.facultyId = req.user._id;
+      report.facultyName = req.user.name;
     }
     
     report.submissionDate = new Date();
@@ -337,6 +364,62 @@ export const approveExpenseReport = async (req, res) => {
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
+    
+    // Initialize approvalHistory if it doesn't exist
+    if (!report.approvalHistory) {
+      report.approvalHistory = [];
+    }
+    
+    // Migrate existing legacy approvals to approvalHistory
+    // Check if migration is needed (empty array OR missing entries that exist in legacy fields)
+    const needsMigration = report.approvalHistory.length === 0 || 
+      (report.facultyApproval && !report.approvalHistory.some(h => h.stage === 'Faculty')) ||
+      (report.schoolChairApproval && !report.approvalHistory.some(h => h.stage === 'School Chair')) ||
+      (report.deanSRICApproval && !report.approvalHistory.some(h => h.stage === 'Dean SRIC')) ||
+      (report.directorApproval && !report.approvalHistory.some(h => h.stage === 'Director')) ||
+      (report.auditApproval && !report.approvalHistory.some(h => h.stage === 'Audit')) ||
+      (report.financeApproval && !report.approvalHistory.some(h => h.stage === 'Finance'));
+    
+    if (needsMigration) {
+      // Migrate existing approvals to approvalHistory
+      const legacyApprovals = [
+        { stage: 'Faculty', approval: report.facultyApproval },
+        { stage: 'School Chair', approval: report.schoolChairApproval },
+        { stage: 'Dean SRIC', approval: report.deanSRICApproval },
+        { stage: 'Director', approval: report.directorApproval },
+        { stage: 'Audit', approval: report.auditApproval },
+        { stage: 'Finance', approval: report.financeApproval }
+      ];
+      
+      legacyApprovals.forEach(({ stage, approval }) => {
+        if (approval && approval.date) {
+          // Only add if not already in history
+          const alreadyExists = report.approvalHistory.some(h => 
+            h.stage === stage && h.date && 
+            new Date(h.date).getTime() === new Date(approval.date).getTime()
+          );
+          
+          if (!alreadyExists) {
+            report.approvalHistory.push({
+              stage,
+              approved: approval.approved,
+              date: approval.date,
+              remarks: approval.remarks,
+              action: approval.action,
+              approvedBy: approval.approvedBy,
+              approvedById: approval.approvedById
+            });
+          }
+        }
+      });
+      
+      // Sort by date
+      report.approvalHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    
+    // Mark that we're using the approvalHistory system
+    // Once we have entries in approvalHistory, we never write to legacy fields again
+    const usingApprovalHistory = report.approvalHistory.length > 0;
     
     const currentDate = new Date();
     
@@ -363,18 +446,37 @@ export const approveExpenseReport = async (req, res) => {
         if (!report.facultyId && report.submitterRole === 'Student') {
           report.facultyId = req.user._id;
           report.facultyName = req.user.name;
+          // Update department to faculty's department for proper School Chair routing
+          report.department = req.user.department;
         }
-        report.facultyApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Faculty', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.facultyApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
         if (!report.facultyId && report.submitterRole === 'Student') {
           report.facultyId = req.user._id;
           report.facultyName = req.user.name;
+          // Update department to faculty's department
+          report.department = req.user.department;
         }
-        report.facultyApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Faculty', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.facultyApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         report.status = 'Draft';
-        report.facultyApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Faculty', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.facultyApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     }
     // School Chair approval
@@ -387,13 +489,28 @@ export const approveExpenseReport = async (req, res) => {
       
       if (action === 'approve') {
         report.status = 'School Chair Approved';
-        report.schoolChairApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'School Chair', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.schoolChairApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.schoolChairApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'School Chair', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.schoolChairApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         report.status = 'Draft'; // Send back to creator
-        report.schoolChairApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'School Chair', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        // Only update legacy field if we're not using the new approvalHistory system
+        if (!usingApprovalHistory) {
+          report.schoolChairApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     }
     // Dean SRIC approval (for Project Fund only)
@@ -407,13 +524,25 @@ export const approveExpenseReport = async (req, res) => {
       
       if (action === 'approve') {
         report.status = 'Dean SRIC Approved';
-        report.deanSRICApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Dean SRIC', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.deanSRICApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.deanSRICApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Dean SRIC', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.deanSRICApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         report.status = 'Draft'; // Send back to creator
-        report.deanSRICApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Dean SRIC', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.deanSRICApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     }
     // Director approval (for Institute Fund only)
@@ -427,13 +556,25 @@ export const approveExpenseReport = async (req, res) => {
       
       if (action === 'approve') {
         report.status = 'Director Approved';
-        report.directorApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Director', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.directorApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.directorApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Director', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.directorApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         report.status = 'Draft'; // Send back to creator
-        report.directorApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Director', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.directorApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     }
     // Audit approval - comes after School Chair (for Dept/Prof Dev) or Dean SRIC (for Project) or Director (for Institute)
@@ -458,27 +599,51 @@ export const approveExpenseReport = async (req, res) => {
       
       if (action === 'approve') {
         report.status = 'Audit Approved';
-        report.auditApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Audit', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.auditApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.auditApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Audit', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.auditApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         // Send back to creator
         report.status = 'Draft';
-        report.auditApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Audit', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.auditApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     }
     // Finance approval - final stage
     else if (req.user.role === 'Finance' && report.status === 'Audit Approved') {
       if (action === 'approve') {
         report.status = 'Finance Approved';
-        report.financeApproval = { approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Finance', approved: true, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.financeApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'reject') {
         report.status = 'Rejected';
-        report.financeApproval = { approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Finance', approved: false, date: currentDate, remarks, approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.financeApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       } else if (action === 'sendback') {
         report.status = 'Draft'; // Send back to creator
-        report.financeApproval = { approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        const approval = { stage: 'Finance', approved: false, date: currentDate, remarks, action: 'sendback', approvedBy: req.user.name, approvedById: req.user._id };
+        if (!usingApprovalHistory) {
+          report.financeApproval = approval;
+        }
+        report.approvalHistory.push(approval);
       }
     } else {
       return res.status(400).json({ message: 'Invalid approval action for current status and user role' });

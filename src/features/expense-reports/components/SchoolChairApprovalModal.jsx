@@ -147,13 +147,20 @@ const SchoolChairApprovalModal = ({ report, onApprove, onReject, onSendBack, onC
                       <div><span className="font-medium">Payment:</span> {item.paymentMethod}</div>
                     </div>
                     {item.receiptImage && (
-                      <div className="mt-2">
+                      <div className="mt-2 flex gap-3">
                         <button
                           type="button"
                           onClick={() => window.open(item.receiptImage, '_blank')}
                           className="text-xs text-blue-600 hover:text-blue-800 underline"
                         >
                           View Receipt
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/expense-report/${report._id}`, '_blank')}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Details
                         </button>
                       </div>
                     )}
@@ -211,10 +218,10 @@ const SchoolChairApprovalModal = ({ report, onApprove, onReject, onSendBack, onC
                   After approval, this report will go to: <span className="text-blue-700">{getNextApprover(report.fundType)}</span>
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
-                  {report.fundType === 'Institute Fund' && 'Workflow: Faculty → School Chair → Director → Audit → Finance'}
-                  {report.fundType === 'Project Fund' && 'Workflow: Faculty → School Chair → Dean SRIC → Audit → Finance'}
-                  {report.fundType === 'Department/School Fund' && 'Workflow: Faculty → School Chair → Audit → Finance'}
-                  {report.fundType === 'Professional Development Allowance' && 'Workflow: Faculty → School Chair → Audit → Finance'}
+                  {report.fundType === 'Institute Fund' && 'Workflow: Faculty → School Chairperson → Director → Audit → Finance'}
+                  {report.fundType === 'Project Fund' && 'Workflow: Faculty → School Chairperson → Dean SRIC → Audit → Finance'}
+                  {report.fundType === 'Department/School Fund' && 'Workflow: Faculty → School Chairperson → Audit → Finance'}
+                  {report.fundType === 'Professional Development Allowance' && 'Workflow: Faculty → School Chairperson → Audit → Finance'}
                 </p>
               </div>
             )}

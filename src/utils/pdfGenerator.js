@@ -143,87 +143,115 @@ export const generateExpenseReportPDF = async (report) => {
             4. APPROVAL STATUS & HISTORY
           </h3>
           
-          <!-- Faculty Approval -->
-          ${report.facultyApproval ? `
-            <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
-              report.facultyApproval.approved === true ? '#f0fdf4' : 
-              report.facultyApproval.approved === false ? '#fef2f2' : '#fefce8'
-            };">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <strong>Faculty Approval:</strong>
-                <span style="
-                  padding: 5px 12px; 
-                  border-radius: 15px; 
-                  font-weight: bold; 
-                  font-size: 12px;
-                  ${report.facultyApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
-                    report.facultyApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
-                    'background-color: #d97706; color: white;'}
-                ">
-                  ${report.facultyApproval.approved === true ? 'APPROVED' : 
-                    report.facultyApproval.action === 'sendback' ? 'SENT BACK' : 
-                    'REJECTED'}
-                </span>
+          ${report.approvalHistory && report.approvalHistory.length > 0 ? `
+            ${report.approvalHistory.map((approval, index) => `
+              <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
+                approval.approved === true ? '#f0fdf4' : 
+                approval.approved === false && approval.action === 'sendback' ? '#fef3c7' :
+                approval.approved === false ? '#fef2f2' : '#f9fafb'
+              };">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong>${index + 1}. ${approval.stage === 'School Chair' ? 'School Chairperson' : approval.stage} ${approval.action === 'sendback' ? 'Send-Back' : approval.approved ? 'Approval' : 'Rejection'}:</strong>
+                  <span style="
+                    padding: 5px 12px; 
+                    border-radius: 15px; 
+                    font-weight: bold; 
+                    font-size: 12px;
+                    ${approval.approved === true ? 'background-color: #16a34a; color: white;' : 
+                      approval.action === 'sendback' ? 'background-color: #d97706; color: white;' :
+                      'background-color: #dc2626; color: white;'}
+                  ">
+                    ${approval.approved === true ? 'APPROVED' : 
+                      approval.action === 'sendback' ? 'SENT BACK' : 
+                      'REJECTED'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${approval.date ? new Date(approval.date).toLocaleDateString() : 'N/A'}</p>
+                ${approval.approvedBy ? `<p style="margin: 5px 0; color: #666; font-size: 12px;">By: ${approval.approvedBy}</p>` : ''}
+                ${approval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${approval.remarks}</p>` : ''}
               </div>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.facultyApproval.date ? new Date(report.facultyApproval.date).toLocaleDateString() : 'N/A'}</p>
-              ${report.facultyApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.facultyApproval.remarks}</p>` : ''}
-              ${report.facultyName ? `<p style="margin: 5px 0; color: #666; font-size: 12px;">By: ${report.facultyName}</p>` : ''}
-            </div>
-          ` : ''}
+            `).join('')}
+          ` : `
+            <!-- Fallback to legacy approval fields if approvalHistory is empty -->
+            ${report.facultyApproval ? `
+              <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
+                report.facultyApproval.approved === true ? '#f0fdf4' : 
+                report.facultyApproval.approved === false ? '#fef2f2' : '#fefce8'
+              };">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong>Faculty Approval:</strong>
+                  <span style="
+                    padding: 5px 12px; 
+                    border-radius: 15px; 
+                    font-weight: bold; 
+                    font-size: 12px;
+                    ${report.facultyApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
+                      report.facultyApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
+                      'background-color: #d97706; color: white;'}
+                  ">
+                    ${report.facultyApproval.approved === true ? 'APPROVED' : 
+                      report.facultyApproval.action === 'sendback' ? 'SENT BACK' : 
+                      'REJECTED'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.facultyApproval.date ? new Date(report.facultyApproval.date).toLocaleDateString() : 'N/A'}</p>
+                ${report.facultyApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.facultyApproval.remarks}</p>` : ''}
+                ${report.facultyName ? `<p style="margin: 5px 0; color: #666; font-size: 12px;">By: ${report.facultyName}</p>` : ''}
+              </div>
+            ` : ''}
 
-          <!-- Audit Approval -->
-          ${report.auditApproval ? `
-            <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
-              report.auditApproval.approved === true ? '#f0fdf4' : 
-              report.auditApproval.approved === false ? '#fef2f2' : '#fefce8'
-            };">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <strong>Audit Approval:</strong>
-                <span style="
-                  padding: 5px 12px; 
-                  border-radius: 15px; 
-                  font-weight: bold; 
-                  font-size: 12px;
-                  ${report.auditApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
-                    report.auditApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
-                    'background-color: #d97706; color: white;'}
-                ">
-                  ${report.auditApproval.approved === true ? 'APPROVED' : 
-                    report.auditApproval.action === 'sendback' ? 'SENT BACK' : 
-                    'REJECTED'}
-                </span>
+            ${report.auditApproval ? `
+              <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
+                report.auditApproval.approved === true ? '#f0fdf4' : 
+                report.auditApproval.approved === false ? '#fef2f2' : '#fefce8'
+              };">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong>Audit Approval:</strong>
+                  <span style="
+                    padding: 5px 12px; 
+                    border-radius: 15px; 
+                    font-weight: bold; 
+                    font-size: 12px;
+                    ${report.auditApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
+                      report.auditApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
+                      'background-color: #d97706; color: white;'}
+                  ">
+                    ${report.auditApproval.approved === true ? 'APPROVED' : 
+                      report.auditApproval.action === 'sendback' ? 'SENT BACK' : 
+                      'REJECTED'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.auditApproval.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A'}</p>
+                ${report.auditApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.auditApproval.remarks}</p>` : ''}
               </div>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.auditApproval.date ? new Date(report.auditApproval.date).toLocaleDateString() : 'N/A'}</p>
-              ${report.auditApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.auditApproval.remarks}</p>` : ''}
-            </div>
-          ` : ''}
+            ` : ''}
 
-          <!-- Finance Approval -->
-          ${report.financeApproval ? `
-            <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
-              report.financeApproval.approved === true ? '#f0fdf4' : 
-              report.financeApproval.approved === false ? '#fef2f2' : '#fefce8'
-            };">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <strong>Finance Approval:</strong>
-                <span style="
-                  padding: 5px 12px; 
-                  border-radius: 15px; 
-                  font-weight: bold; 
-                  font-size: 12px;
-                  ${report.financeApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
-                    report.financeApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
-                    'background-color: #d97706; color: white;'}
-                ">
-                  ${report.financeApproval.approved === true ? 'APPROVED' : 
-                    report.financeApproval.action === 'sendback' ? 'SENT BACK' : 
-                    'REJECTED'}
-                </span>
+            ${report.financeApproval ? `
+              <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: ${
+                report.financeApproval.approved === true ? '#f0fdf4' : 
+                report.financeApproval.approved === false ? '#fef2f2' : '#fefce8'
+              };">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong>Finance Approval:</strong>
+                  <span style="
+                    padding: 5px 12px; 
+                    border-radius: 15px; 
+                    font-weight: bold; 
+                    font-size: 12px;
+                    ${report.financeApproval.approved === true ? 'background-color: #16a34a; color: white;' : 
+                      report.financeApproval.approved === false ? 'background-color: #dc2626; color: white;' : 
+                      'background-color: #d97706; color: white;'}
+                  ">
+                    ${report.financeApproval.approved === true ? 'APPROVED' : 
+                      report.financeApproval.action === 'sendback' ? 'SENT BACK' : 
+                      'REJECTED'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.financeApproval.date ? new Date(report.financeApproval.date).toLocaleDateString() : 'N/A'}</p>
+                ${report.financeApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.financeApproval.remarks}</p>` : ''}
               </div>
-              <p style="margin: 5px 0; color: #666; font-size: 14px;">Date: ${report.financeApproval.date ? new Date(report.financeApproval.date).toLocaleDateString() : 'N/A'}</p>
-              ${report.financeApproval.remarks ? `<p style="margin: 10px 0; padding: 10px; background-color: rgba(0,0,0,0.05); border-radius: 5px; font-size: 14px;"><strong>Remarks:</strong> ${report.financeApproval.remarks}</p>` : ''}
-            </div>
-          ` : ''}
+            ` : ''}
+          `}
         </div>
 
         <!-- Footer -->

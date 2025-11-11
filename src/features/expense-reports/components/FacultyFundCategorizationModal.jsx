@@ -123,13 +123,20 @@ const FacultyFundCategorizationModal = ({ report, onApprove, onReject, onSendBac
                       <div><span className="font-medium">Payment:</span> {item.paymentMethod}</div>
                     </div>
                     {item.receiptImage && (
-                      <div className="mt-2">
+                      <div className="mt-2 flex gap-3">
                         <button
                           type="button"
                           onClick={() => window.open(item.receiptImage, '_blank')}
                           className="text-xs text-blue-600 hover:text-blue-800 underline"
                         >
                           View Receipt
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/expense-report/${report._id}`, '_blank')}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Details
                         </button>
                       </div>
                     )}
@@ -225,10 +232,10 @@ const FacultyFundCategorizationModal = ({ report, onApprove, onReject, onSendBac
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm font-medium text-blue-900 mb-1">Approval Workflow:</p>
                     <p className="text-sm text-blue-700">
-                      {fundType === 'Institute Fund' && 'Faculty → School Chair → Director → Audit → Finance'}
-                      {fundType === 'Department/School Fund' && 'Faculty → School Chair → Audit → Finance'}
-                      {fundType === 'Project Fund' && 'Faculty → School Chair → Dean SRIC → Audit → Finance'}
-                      {fundType === 'Professional Development Allowance' && 'Faculty → School Chair → Audit → Finance'}
+                      {fundType === 'Institute Fund' && 'Faculty → School Chairperson → Director → Audit → Finance'}
+                      {fundType === 'Department/School Fund' && 'Faculty → School Chairperson → Audit → Finance'}
+                      {fundType === 'Project Fund' && 'Faculty → School Chairperson → Dean SRIC → Audit → Finance'}
+                      {fundType === 'Professional Development Allowance' && 'Faculty → School Chairperson → Audit → Finance'}
                     </p>
                   </div>
                 )}

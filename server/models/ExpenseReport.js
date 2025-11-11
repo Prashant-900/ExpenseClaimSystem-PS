@@ -92,7 +92,7 @@ const expenseReportSchema = new mongoose.Schema({
   
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS']
+    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS', 'CAIR', 'IKSMHA', 'AMRC', 'CQST', 'C4DFED', 'BioX Centre']
   },
   expenseReportDate: { type: Date, default: Date.now },
   expensePeriodStart: { type: Date, required: true },
@@ -146,6 +146,17 @@ const expenseReportSchema = new mongoose.Schema({
   directorApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
   auditApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
   financeApproval: { approved: Boolean, date: Date, remarks: String, approvedBy: String, approvedById: mongoose.Schema.Types.ObjectId, action: String },
+  
+  // Unified approval history (new). Each entry captures the stage and metadata.
+  approvalHistory: [{
+    stage: { type: String, enum: ['Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance'] },
+    approved: Boolean,
+    date: Date,
+    remarks: String,
+    action: String, // e.g., 'sendback'
+    approvedBy: String,
+    approvedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
   
   submissionDate: { type: Date }
 }, { timestamps: true });

@@ -20,6 +20,8 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
     purposeOfExpense: '',
     reportType: 'Teaching-related',
     fundingSource: 'Department Budget',
+    fundType: 'Department/School Fund',
+    projectId: '',
     costCenter: '',
     programProjectCode: '',
     businessUnit: '',
@@ -32,7 +34,13 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   const [facultyList, setFacultyList] = useState([]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // If the student changes school, reset faculty selection so list refreshes
+    if (name === 'department') {
+      setFormData({ ...formData, department: value, facultyId: '', facultyName: '' });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleStep1Submit = (e) => {
@@ -55,15 +63,42 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   useEffect(() => {
     const fetchFaculty = async () => {
       try {
-        const { data } = await API.get('/users/list?role=Faculty');
+        const department = formData.department;
+        const qs = department ? `?role=Faculty&department=${encodeURIComponent(department)}` : `?role=Faculty`;
+        console.log('Fetching faculty with query:', qs, 'for department:', department);
+        const { data } = await API.get(`/users/list${qs}`);
+        console.log('Fetched faculty list:', data?.length, 'faculties');
         setFacultyList(data || []);
+
+        // Auto-select first faculty if list has items and no faculty is currently selected
+        if (data && data.length > 0 && !formData.facultyId) {
+          const firstFaculty = data[0];
+          setFormData(prev => ({ 
+            ...prev, 
+            facultyId: firstFaculty._id, 
+            facultyName: firstFaculty.name 
+          }));
+        }
+        // If selected faculty is not part of the newly fetched list, select first from new list
+        else if (formData.facultyId && !data.find(f => f._id === formData.facultyId)) {
+          if (data && data.length > 0) {
+            const firstFaculty = data[0];
+            setFormData(prev => ({ 
+              ...prev, 
+              facultyId: firstFaculty._id, 
+              facultyName: firstFaculty.name 
+            }));
+          } else {
+            setFormData(prev => ({ ...prev, facultyId: '', facultyName: '' }));
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch faculty list:', error);
       }
     };
 
     if (user?.role === 'Student') fetchFaculty();
-  }, [user]);
+  }, [user, formData.department]);
 
   const handleEditItem = (index) => {
     setEditingItem(index);
@@ -80,6 +115,18 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
   };
 
   const handleSubmitReport = async () => {
+    // Validate fund type for faculty
+    if (user?.role === 'Faculty') {
+      if (!formData.fundType) {
+        alert('Please select a Fund Type');
+        return;
+      }
+      if (formData.fundType === 'Project Fund' && !formData.projectId) {
+        alert('Project ID is required for Project Fund');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const reportData = {
@@ -89,6 +136,25 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
         expenseReportDate: new Date(),
         status: 'Submitted'
       };
+
+      // Remove student-specific fields if user is Faculty
+      if (user?.role === 'Faculty') {
+        delete reportData.studentId;
+        delete reportData.studentName;
+        delete reportData.facultyId;  // Faculty doesn't need facultyId (they are the faculty)
+        delete reportData.facultyName; // Faculty doesn't need facultyName
+        
+        // Set default fundingSource for faculty if not provided (since we removed the field from UI)
+        if (!reportData.fundingSource) {
+          reportData.fundingSource = 'Department Budget';
+        }
+      }
+
+      // Remove faculty-specific fields if user is Student
+      if (user?.role === 'Student') {
+        delete reportData.fundType;
+        delete reportData.projectId;
+      }
       
       if (reportId) {
         await API.patch(`/expense-reports/${reportId}`, reportData);
@@ -114,6 +180,25 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
         expenseReportDate: new Date(),
         status: 'Draft'
       };
+
+      // Remove student-specific fields if user is Faculty
+      if (user?.role === 'Faculty') {
+        delete reportData.studentId;
+        delete reportData.studentName;
+        delete reportData.facultyId;  // Faculty doesn't need facultyId (they are the faculty)
+        delete reportData.facultyName; // Faculty doesn't need facultyName
+        
+        // Set default fundingSource for faculty if not provided (since we removed the field from UI)
+        if (!reportData.fundingSource) {
+          reportData.fundingSource = 'Department Budget';
+        }
+      }
+
+      // Remove faculty-specific fields if user is Student
+      if (user?.role === 'Student') {
+        delete reportData.fundType;
+        delete reportData.projectId;
+      }
       
       if (reportId) {
         await API.patch(`/expense-reports/${reportId}`, reportData);
@@ -162,9 +247,9 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                   <input type="text" name="studentName" value={formData.studentName} className="w-full p-2 border rounded bg-gray-100" disabled />
                 </div>
                <div>
-                 <label className="block text-sm font-medium mb-2">School *</label>
+                 <label className="block text-sm font-medium mb-2">School/Centre *</label>
                  <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" required>
-                   <option value="">Select School</option>
+                   <option value="">Select School/Centre</option>
                    <option value="SCEE">SCEE</option>
                    <option value="SMME">SMME</option>
                    <option value="SCENE">SCENE</option>
@@ -174,6 +259,12 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                    <option value="SPS">SPS</option>
                    <option value="SoM">SoM</option>
                    <option value="SHSS">SHSS</option>
+                   <option value="CAIR">CAIR</option>
+                   <option value="IKSMHA">IKSMHA</option>
+                   <option value="AMRC">AMRC</option>
+                   <option value="CQST">CQST</option>
+                   <option value="C4DFED">C4DFED</option>
+                   <option value="BioX Centre">BioX Centre</option>
                  </select>
                </div>
                 {user?.role === 'Student' && (
@@ -188,12 +279,24 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                       }}
                       className="w-full p-2 border rounded"
                       required
+                      disabled={facultyList.length === 0}
                     >
-                      <option value="">-- Select Faculty --</option>
-                      {facultyList.map(f => (
-                        <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
-                      ))}
+                      {facultyList.length === 0 ? (
+                        <option value="">No faculty available for {formData.department || 'selected school'}</option>
+                      ) : (
+                        <>
+                          <option value="">-- Select Faculty --</option>
+                          {facultyList.map(f => (
+                            <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
+                          ))}
+                        </>
+                      )}
                     </select>
+                    {facultyList.length === 0 && formData.department && (
+                      <p className="text-sm text-amber-600 mt-1">
+                        ⚠️ No faculty found for {formData.department}. Please contact admin or select a different school.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -207,10 +310,27 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                   <input type="text" name="facultyName" value={formData.facultyName} onChange={handleChange} className="w-full p-2 border rounded" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Department *</label>
+                  <label className="block text-sm font-medium mb-2">Department/School/Centre *</label>
                   <select name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded">
-                    <option value="SCEE">SCEE</option>
-                    <option value="SMME">SMME</option>
+                    <optgroup label="Schools">
+                      <option value="SCEE">SCEE</option>
+                      <option value="SMME">SMME</option>
+                      <option value="SCENE">SCENE</option>
+                      <option value="SBB">SBB</option>
+                      <option value="SCS">SCS</option>
+                      <option value="SMSS">SMSS</option>
+                      <option value="SPS">SPS</option>
+                      <option value="SoM">SoM</option>
+                      <option value="SHSS">SHSS</option>
+                    </optgroup>
+                    <optgroup label="Centres">
+                      <option value="CAIR">CAIR</option>
+                      <option value="IKSMHA">IKSMHA</option>
+                      <option value="AMRC">AMRC</option>
+                      <option value="CQST">CQST</option>
+                      <option value="C4DFED">C4DFED</option>
+                      <option value="BioX Centre">BioX Centre</option>
+                    </optgroup>
                   </select>
                 </div>
               </div>
@@ -253,18 +373,29 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Financial Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Funding Source *</label>
-                  <select name="fundingSource" value={formData.fundingSource} onChange={handleChange} className="w-full p-2 border rounded">
-                    <option value="Department Budget">Department Budget</option>
-                    <option value="Research Grant">Research Grant</option>
-                    <option value="Gift/Endowment Fund">Gift/Endowment Fund</option>
-                    <option value="Cost-Sharing/Matching Fund">Cost-Sharing/Matching Fund</option>
+                  <label className="block text-sm font-medium mb-2">Fund Type *</label>
+                  <select name="fundType" value={formData.fundType} onChange={handleChange} className="w-full p-2 border rounded" required>
+                    <option value="">Select Fund Type</option>
+                    <option value="Department/School Fund">Department/School Fund</option>
+                    <option value="Institute Fund">Institute Fund</option>
+                    <option value="Project Fund">Project Fund</option>
+                    <option value="Professional Development Allowance">Professional Development Allowance</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Program/Project Code</label>
-                  <input type="text" name="programProjectCode" value={formData.programProjectCode} onChange={handleChange} className="w-full p-2 border rounded" />
-                </div>
+                {formData.fundType === 'Project Fund' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Project ID *</label>
+                    <input 
+                      type="text" 
+                      name="projectId" 
+                      value={formData.projectId} 
+                      onChange={handleChange} 
+                      className="w-full p-2 border rounded" 
+                      placeholder="Enter Project ID"
+                      required 
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">Business Unit</label>
                   <input type="text" name="businessUnit" value={formData.businessUnit} onChange={handleChange} className="w-full p-2 border rounded" />

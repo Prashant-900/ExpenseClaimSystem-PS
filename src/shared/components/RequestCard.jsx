@@ -116,7 +116,7 @@ const RequestCard = ({ request, onAction, userRole, showActions = true }) => {
           
           {/* Display amount */}
           <h3 className="text-lg font-semibold">
-            {isReimbursement ? `$${request.amount}` : `₹${request.totalAmount?.toFixed(2) || '0.00'}`}
+            {isReimbursement ? `₹${request.amount}` : `₹${request.totalAmount?.toFixed(2) || '0.00'}`}
           </h3>
           
           {/* Display description */}
