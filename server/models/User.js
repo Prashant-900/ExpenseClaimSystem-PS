@@ -24,7 +24,11 @@ const userSchema = new mongoose.Schema({
     }
   },
   bio: { type: String },
-  profileImage: { type: String }
+  profileImage: { type: String },
+  // Email verification fields
+  emailVerified: { type: Boolean, default: false },
+  emailVerificationOTPHash: { type: String },
+  emailVerificationOTPExpires: { type: Date }
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

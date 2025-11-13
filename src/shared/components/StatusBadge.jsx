@@ -9,7 +9,7 @@ const StatusBadge = ({ status, fundType }) => {
       case 'Submitted':
         return 'Pending Faculty Review';
       case 'Faculty Approved':
-        return 'Pending School Chair Review';
+        return 'Pending School Chairperson Review';
       case 'School Chair Approved':
         // Show next stage based on fund type
         if (fundType === 'Project Fund') {
