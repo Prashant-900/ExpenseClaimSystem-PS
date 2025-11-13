@@ -132,10 +132,24 @@ const WorkflowProgress = ({ report }) => {
   // 1. There is a pending stage AND
   // 2. Report is not in final state AND
   // 3. The last entry in history is not already for this pending stage (to avoid showing it twice)
-  if (pendingStage && !['Finance Approved', 'Rejected', 'Completed'].includes(report.status)) {
+  // 4. If status is Draft after sendback, do NOT show pending stage (wait for resubmission)
+  if (
+    pendingStage &&
+    !['Finance Approved', 'Rejected', 'Completed'].includes(report.status)
+  ) {
     const lastEntry = displayEntries[displayEntries.length - 1];
-    const shouldAddPending = !lastEntry || lastEntry.stage !== pendingStage || lastEntry.action === 'sendback';
-    
+    let shouldAddPending = !lastEntry || lastEntry.stage !== pendingStage || lastEntry.action === 'sendback';
+
+    // If status is Draft and last action was sendback, do NOT show the next pending stage
+    // This applies to both Student reports (Faculty pending) and Faculty reports (School Chair pending)
+    if (
+      report.status === 'Draft' &&
+      report.approvalHistory &&
+      report.approvalHistory.some(h => h.action === 'sendback')
+    ) {
+      shouldAddPending = false;
+    }
+
     if (shouldAddPending) {
       displayEntries.push({
         stage: pendingStage,

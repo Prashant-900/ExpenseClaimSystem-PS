@@ -23,12 +23,34 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await API.post('/auth/register', userData);
+      // Backend now returns message + email, no token until verification
+      set({ isLoading: false });
+      return { success: true, requiresVerification: true, email: data.email, message: data.message };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Registration failed' };
+    }
+  },
+
+  verifyEmail: async (email, otp) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await API.post('/auth/verify-email', { email, otp });
       localStorage.setItem('token', data.token);
       set({ user: data.user, token: data.token, isLoading: false });
       return { success: true };
     } catch (error) {
       set({ isLoading: false });
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
+      return { success: false, error: error.response?.data?.message || 'Verification failed' };
+    }
+  },
+
+  resendOtp: async (email) => {
+    try {
+      await API.post('/auth/resend-otp', { email });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || 'Failed to resend OTP' };
     }
   },
 

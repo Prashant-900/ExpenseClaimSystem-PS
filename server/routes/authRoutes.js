@@ -2,13 +2,15 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import User from '../models/User.js';
-import { register, login, updateProfile, getUserProfile, uploadProfileImage } from '../controllers/authController.js';
+import { register, login, updateProfile, getUserProfile, uploadProfileImage, verifyEmail, resendVerificationOTP } from '../controllers/authController.js';
 import { authenticate } from '../utils/authorizationMiddleware.js';
 import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
 router.post('/register', register);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-otp', resendVerificationOTP);
 router.post('/login', login);
 router.get('/me', async (req, res) => {
   try {
