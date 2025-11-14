@@ -19,11 +19,11 @@ const app = express();
 
 // CORS configuration - allow multiple frontend URLs
 const corsOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-  "http://43.204.216.162:80",
+  process.env.FRONTEND_URL,
+  "http://43.204.216.162",
   'http://172.18.32.116:5173',
   'http://192.168.1.1:5173',
-  "http://ec2-43-204-216-162.ap-south-1.compute.amazonaws.com:80",
+  "http://ec2-65-0-45-207.ap-south-1.compute.amazonaws.com",
   "http://172.31.5.53:80"
 ].filter(Boolean);
 
