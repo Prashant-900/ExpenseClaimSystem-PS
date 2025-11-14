@@ -401,7 +401,7 @@ const ExpenseReportDetails = () => {
                     onClick={handleSubmitReport}
                     className="w-full sm:w-auto px-4 sm:px-8 py-3 sm:py-4 bg-gray-800 text-white font-bold text-sm sm:text-base lg:text-lg rounded hover:bg-gray-900"
                   >
-                    <span className="hidden sm:inline">Submit Complete Report for Review</span>
+                    <span className="hidden sm:inline">Submit Report for Review</span>
                     <span className="sm:hidden">Submit Report for Review</span>
                   </button>
                 ) : (

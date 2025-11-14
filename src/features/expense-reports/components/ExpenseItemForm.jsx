@@ -288,7 +288,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
               <input type="text" name="eventDates" value={formData.eventDates || ''} onChange={handleChange} className="w-full p-2 border rounded" placeholder="e.g., Jan 15-17, 2024" />
             </div>
           </div>
-          {category.includes('Registration') && (
+          {/* {category.includes('Registration') && (
             <div>
               <label className="block text-sm font-medium mb-1">Registration Type</label>
               <select name="registrationType" value={formData.registrationType || ''} onChange={handleChange} className="w-full p-2 border rounded">
@@ -298,7 +298,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
                 <option value="Virtual">Virtual</option>
               </select>
             </div>
-          )}
+          )} */}
         </>
       );
     }
@@ -317,7 +317,7 @@ const ExpenseItemForm = ({ item, onSave, onCancel }) => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Item Description</label>
+            <label className="block text-sm font-medium mb-1">Item Name</label>
             <input type="text" name="itemDescription" value={formData.itemDescription || ''} onChange={handleChange} className="w-full p-2 border rounded" />
           </div>
           {category.includes('Lab') && (

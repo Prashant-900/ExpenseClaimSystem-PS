@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignUp, useAuth } from '@clerk/clerk-react';
 import { SCHOOLS } from '../../../utils/schools';
@@ -15,9 +15,11 @@ const Register = () => {
     roleno: ''
   });
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [pendingUserData, setPendingUserData] = useState(null);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const { register, verifyEmail, resendOtp, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const { signUp } = useSignUp();
   const { getToken } = useAuth();
@@ -34,140 +36,85 @@ const Register = () => {
   const isIITDomain = validDomains.some(d => formData.email?.endsWith(d));
   const isStudentEmail = formData.email?.endsWith('@students.iitmandi.ac.in');
 
+  // Auto-extract student ID from email when student email is entered
+  useEffect(() => {
+    if (isStudentEmail) {
+      const rollNo = formData.email.split('@')[0];
+      if (rollNo && rollNo !== formData.studentId) {
+        setFormData(prev => ({ ...prev, studentId: rollNo }));
+      }
+    }
+  }, [formData.email, isStudentEmail]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
-
-    try {
-      // Allow any email. If it's not an IIT Mandi email, the form will require `roleno`.
-      if (!formData.email || !formData.email.includes('@')) {
-        setError('Please enter a valid email address');
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password length
-      if (formData.password.length < 8) {
-        setError('Password must be at least 8 characters long');
-        setIsLoading(false);
-        return;
-      }
-
-      // Split name into firstName and lastName
-      const nameParts = formData.name.trim().split(/\s+/);
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      // Determine role client-side for convenience (backend will also enforce defaults)
-      let role = 'Student';
-      if (formData.email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
-      else if (formData.email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
-      else if (formData.email?.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
-      else if (formData.email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
-      else if (formData.email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
-      else {
-        // For non-IIT emails, default to Faculty (external users)
-        role = 'Faculty';
-      }
-
-      // Step 1: Create user in Clerk
-      await signUp.create({
-        emailAddress: formData.email,
-        password: formData.password,
-        firstName: firstName,
-        lastName: lastName,
-      });
-
-      // Step 2: Prepare email verification
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-
-      // Store user data to send to backend after OTP verification
-      setPendingUserData({
-        name: `${firstName} ${lastName}`.trim(),
-        email: formData.email,
-        department: formData.department,
-        studentId: formData.studentId,
-        roleno: formData.roleno,
-        role,
-      });
-
-      // Show OTP verification
-      setShowOTP(true);
-    } catch (err) {
-      setError(err?.errors?.[0]?.message || 'Registration failed');
-    } finally {
-      setIsLoading(false);
+    
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    
+    const result = await register(formData);
+    if (result.success && result.requiresVerification) {
+      setOtpStep(true);
+      setPendingEmail(result.email);
+      // Start 10 minute countdown (600 seconds) when OTP step begins
+      setRemainingSeconds(10 * 60);
+    } else if (!result.success) {
+      setError(result.error);
     }
   };
 
-  const handleOTPSuccess = async () => {
-    try {
-      // Wait for Clerk session to be fully established
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get the auth token from Clerk (retry if needed)
-      let token = null;
-      let retries = 0;
-      while (!token && retries < 5) {
-        try {
-          token = await getToken();
-          if (token) break;
-        } catch (err) {
-          console.log('Waiting for token, retry:', retries + 1);
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
-        retries++;
-      }
-
-      if (!token) {
-        console.error('Failed to get auth token after OTP verification');
-        setError('Authentication error. Please try logging in.');
-        // Still try to redirect, user can login
-        setTimeout(() => navigate('/login'), 2000);
-        return;
-      }
-      
-      console.log('Got auth token, saving user to MongoDB...');
-      
-      // After OTP verification, save user to MongoDB with auth token
-      const response = await fetch(`${API_URL}/auth/save-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(pendingUserData),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to save user:', errorData);
-        setError(errorData.message || 'Failed to save user data');
-        // Still redirect to dashboard, data will be saved on next login
-        setTimeout(() => navigate('/dashboard'), 2000);
-        return;
-      }
-
-      console.log('User saved successfully to MongoDB');
-      
-      // Wait a bit more for state to propagate
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Registration successful - redirect to dashboard
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!otp || otp.length !== 6) {
+      setError('Please enter the 6-digit OTP sent to your email');
+      return;
+    }
+    const result = await verifyEmail(pendingEmail, otp);
+    if (result.success) {
       navigate('/dashboard');
-    } catch (err) {
-      console.error('Error in handleOTPSuccess:', err);
-      setError(err?.message || 'Failed to save user data');
-      // Still try to redirect, user can login
-      setTimeout(() => navigate('/login'), 2000);
+    } else {
+      setError(result.error);
     }
   };
 
-  if (showOTP) {
-    return <OTPVerification email={formData.email} onSuccess={handleOTPSuccess} type="signup" />;
-  }
+  const handleResend = async () => {
+    setError('');
+    const res = await resendOtp(pendingEmail);
+    if (!res.success) {
+      setError(res.error);
+      return;
+    }
+    // Reset countdown to 10 minutes after successful resend
+    setRemainingSeconds(10 * 60);
+  };
+
+  // Countdown effect for OTP timer
+  useEffect(() => {
+    if (!otpStep) return;
+    if (remainingSeconds <= 0) return;
+
+    const id = setInterval(() => {
+      setRemainingSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [otpStep, remainingSeconds]);
+
+  const formatTime = (secs) => {
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -177,7 +124,8 @@ const Register = () => {
             Create your account
           </h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+  {!otpStep ? (
+  <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
               {error}
@@ -235,13 +183,14 @@ const Register = () => {
               <input
                 type="text"
                 required
-                className="form-input"
+                readOnly
+                className="form-input bg-gray-100 cursor-not-allowed"
                 placeholder="Student ID / Roll Number (e.g., B21001)"
                 value={formData.studentId}
                 onChange={(e) => setFormData({ ...formData, studentId: e.target.value.trim() })}
               />
               <p className="mt-1 text-xs text-gray-500">
-                Enter your official student ID/roll number
+                Auto-filled from your email address
               </p>
             </div>
           )}
@@ -278,6 +227,56 @@ const Register = () => {
             </Link>
           </div>
         </form>
+        ) : (
+        <form className="mt-8 space-y-6" onSubmit={handleVerify}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          <p className="text-gray-600 text-sm">We sent a 6-digit verification code to <strong>{pendingEmail}</strong>. Enter it below to activate your account.</p>
+
+          <div>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="^[0-9]{6}$"
+              maxLength={6}
+              required
+              autoComplete="one-time-code"
+              className="form-input tracking-widest text-center text-lg"
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={remainingSeconds > 0}
+              className={`text-sm ${remainingSeconds > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:underline'}`}
+            >
+              {remainingSeconds > 0 ? `Resend in ${formatTime(remainingSeconds)}` : 'Resend OTP'}
+            </button>
+            <button type="button" onClick={() => setOtpStep(false)} className="text-sm text-gray-600 hover:underline">
+              Edit details
+            </button>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary w-full"
+            >
+              {isLoading ? 'Verifying...' : 'Verify & Continue'}
+            </button>
+          </div>
+        </form>
+        )}
       </div>
     </div>
   );

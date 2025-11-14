@@ -62,9 +62,9 @@ const ExpenseReportDashboard = () => {
                     {new Date(report.expensePeriodStart).toLocaleDateString()} - {new Date(report.expensePeriodEnd).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-xl sm:text-2xl font-bold text-green-600">${report.totalAmount?.toFixed(2) || '0.00'}</p>
-                  <span className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-green-600">₹{report.totalAmount?.toFixed(2) || '0.00'}</p>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     report.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
                     report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' :
                     report.status === 'Completed' ? 'bg-green-100 text-green-800' :

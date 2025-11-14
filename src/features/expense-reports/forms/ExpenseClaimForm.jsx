@@ -132,7 +132,7 @@ const ExpenseClaimForm = ({ onSuccess }) => {
                         <label htmlFor={`draft-${draft._id}`} className="flex-1 cursor-pointer">
                           <div className="text-sm font-medium text-gray-900">{draft.title}</div>
                           <div className="text-sm text-gray-600">
-                            ${draft.amount} • {draft.expenseType} • {new Date(draft.createdAt).toLocaleDateString()}
+                            ₹{draft.amount} • {draft.expenseType} • {new Date(draft.createdAt).toLocaleDateString()}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">{draft.description}</div>
                         </label>
@@ -149,7 +149,7 @@ const ExpenseClaimForm = ({ onSuccess }) => {
                         <div key={draft._id} className="bg-white p-3 sm:p-4 rounded border">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                             <div><strong>Title:</strong> {draft.title}</div>
-                            <div><strong>Amount:</strong> ${draft.amount}</div>
+                            <div><strong>Amount:</strong> ₹{draft.amount}</div>
                             <div><strong>Type:</strong> {draft.expenseType}</div>
                             <div><strong>Date:</strong> {new Date(draft.expenseDate).toLocaleDateString()}</div>
                             <div className="sm:col-span-2"><strong>Description:</strong> {draft.description}</div>

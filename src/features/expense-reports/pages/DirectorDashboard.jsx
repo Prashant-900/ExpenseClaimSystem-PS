@@ -101,7 +101,7 @@ const DirectorDashboard = () => {
       {/* Info Box */}
       <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
         <p className="text-sm text-purple-900 mb-2">
-          <span className="font-semibold">Your Role:</span> As Director, you review all Institute Fund expenses that have been approved by School Chairs. These are high-priority institutional expenses.
+          <span className="font-semibold">Your Role:</span> As Director, you review all Institute Fund expenses that have been approved by School Chairpersons. These are high-priority institutional expenses.
         </p>
         <div className="text-sm text-purple-900">
             <span className="font-semibold">Pending Amount:</span> ₹{totalPendingAmount.toLocaleString()}
@@ -158,6 +158,12 @@ const DirectorDashboard = () => {
             <option value="SPS">SPS</option>
             <option value="SoM">SoM</option>
             <option value="SHSS">SHSS</option>
+            <option value="CAIR">CAIR</option>
+            <option value="IKSMHA">IKSMHA</option>
+            <option value="AMRC">AMRC</option>
+            <option value="CQST">CQST</option>
+            <option value="C4DFED">C4DFED</option>
+            <option value="BioX Centre">BioX Centre</option>
           </select>
         </div>
 
@@ -226,7 +232,7 @@ const DirectorDashboard = () => {
                     <div>✓ Faculty: {report.facultyApproval.approvedBy}</div>
                   )}
                   {report.schoolChairApproval?.approved && (
-                    <div>✓ School Chair: {report.schoolChairApproval.approvedBy}</div>
+                    <div>✓ School Chairperson: {report.schoolChairApproval.approvedBy}</div>
                   )}
                 </div>
               </div>

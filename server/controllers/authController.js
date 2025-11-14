@@ -1,7 +1,7 @@
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
-import { getProfileImageUrl } from '../utils/imageUtils.js';
-import { ErrorTypes } from '../utils/appError.js';
+
+const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 export const saveUser = async (req, res) => {
   try {
@@ -20,96 +20,85 @@ export const saveUser = async (req, res) => {
       console.error('Missing required fields:', { name: !!name, email: !!email });
       return res.status(error.statusCode).json({ message: error.message });
     }
-
-    // Get Clerk user ID if authenticated
-    const userId = auth ? (auth.userId || auth.sub) : null;
     
-    console.log('Clerk userId:', userId);
-    console.log('Processing user registration for email:', email);
+    // Assign role based on email domain
+    let role = 'Student';
+    if (email.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
+    else if (email.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
+    else if (email.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
+    else if (email.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
+    
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
-    // Try to find existing user by clerkId or email
-    let user = null;
-    if (userId) {
-      user = await User.findOne({ clerkId: userId });
-      if (!user) {
-        user = await User.findOne({ email });
-      }
-    } else {
-      user = await User.findOne({ email });
+    const userData = { name, email, password, role, facultyEmail, department };
+    
+    // Add studentId for students
+    if (role === 'Student' && studentId) {
+      userData.studentId = studentId;
+    }
+    
+    const user = await User.create(userData);
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, department: user.department, studentId: user.studentId, profileImage: user.profileImage }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getProfileImageUrl = async (userId) => {
+  try {
+    const { Client } = await import('minio');
+    const minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: false,
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY
+    });
+    
+    const objectPath = `profiles/${userId}/profile.jpg`;
+    
+    try {
+      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
+      return `http://localhost:5000/api/images/${objectPath}`;
+    } catch (error) {
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+};
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Validate email domain
+    const validDomains = [
+      '@students.iitmandi.ac.in',
+      '@faculty.iitmandi.ac.in',
+      '@audit.iitmandi.ac.in',
+      '@finance.iitmandi.ac.in',
+      '@admin.iitmandi.ac.in'
+    ];
+    
+    const isValidDomain = validDomains.some(domain => email.endsWith(domain));
+    if (!isValidDomain) {
+      return res.status(400).json({ message: 'Invalid email domain. Use IIT Mandi email.' });
+    }
+    
+    const user = await User.findOne({ email });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    console.log('Existing user found:', !!user);
-
-    if (user) {
-      // Update existing user
-      const updateFields = { name, department };
-      
-      // Only update studentId if it's provided and not empty
-      if (studentId && studentId.trim()) {
-        updateFields.studentId = studentId.trim();
-      }
-      
-      if (roleno !== undefined) updateFields.roleno = roleno;
-      
-      // If user was created without Clerk but now has Clerk ID, update it
-      if (userId && user.clerkId !== userId) {
-        updateFields.clerkId = userId;
-      }
-      
-      user = await User.findByIdAndUpdate(user._id, updateFields, { new: true, runValidators: true });
-      
-      console.log('Updated existing user:', {
-        _id: user._id,
-        clerkId: user.clerkId,
-        email: user.email,
-        roleno: user.roleno,
-        role: user.role
-      });
-    } else {
-      // Determine role: known domains -> specific roles; otherwise default based on email
-      let role = providedRole || 'Student';
-      if (email?.endsWith('@faculty.iitmandi.ac.in')) role = 'Faculty';
-      else if (email?.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
-      else if (email?.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
-      else if (email?.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
-      else if (email?.endsWith('@students.iitmandi.ac.in')) role = 'Student';
-      else {
-        // For non-IIT emails, if they have roleno but no studentId, treat as Faculty/Staff
-        // Otherwise, use provided role
-        if (roleno && !studentId) {
-          role = 'Faculty'; // Default to Faculty for external users with roleno
-        }
-      }
-
-      // Prepare user data
-      const userData = {
-        clerkId: userId || `local:${email}`,
-        name,
-        email,
-        role,
-        department,
-        roleno: roleno || ''
-      };
-
-      // Only add studentId if role is Student AND studentId is provided
-      if (role === 'Student' && studentId && studentId.trim()) {
-        userData.studentId = studentId.trim();
-      } else if (role === 'Student' && email?.endsWith('@students.iitmandi.ac.in')) {
-        // For IIT student emails without studentId, set a placeholder
-        userData.studentId = roleno || email.split('@')[0];
-      }
-
-      // Create new user with Clerk ID if available
-      user = await User.create(userData);
-      
-      console.log('Created new user:', {
-        _id: user._id,
-        clerkId: user.clerkId,
-        email: user.email,
-        roleno: user.roleno,
-        role: user.role,
-        studentId: user.studentId
-      });
+    if (!user.emailVerified) {
+      return res.status(403).json({ message: 'Email not verified. Please complete verification before logging in.' });
     }
 
     console.log('✅ User saved successfully to MongoDB:', {

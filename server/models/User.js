@@ -20,10 +20,17 @@ const userSchema = new mongoose.Schema({
   phone: { type: String },
   department: { 
     type: String, 
-    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS']
+    enum: ['SCEE', 'SMME', 'SCENE', 'SBB', 'SCS', 'SMSS', 'SPS', 'SoM', 'SHSS', 'CAIR', 'IKSMHA', 'AMRC', 'CQST', 'C4DFED', 'BioX Centre'],
+    required: function() {
+      return ['Student', 'Faculty', 'School Chair'].includes(this.role);
+    }
   },
   bio: { type: String },
-  profileImage: { type: String }
+  profileImage: { type: String },
+  // Email verification fields
+  emailVerified: { type: Boolean, default: false },
+  emailVerificationOTPHash: { type: String },
+  emailVerificationOTPExpires: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);
