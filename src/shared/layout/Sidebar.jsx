@@ -100,7 +100,32 @@ const Sidebar = ({ isOpen, onClose }) => {
           <p className="text-gray-300 text-sm font-medium">{userRole}</p>
         </div>
       </div>
-    </>
+
+      <nav className="flex-1 p-4">
+        <div className="space-y-1">
+          {getNavItems().map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
+                location.pathname === item.path
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      <div className="p-4 border-t border-gray-600">
+        <div className="text-xs text-gray-400">
+          © 2025 ExpenseClaim System
+        </div>
+      </div>
+    </div>
   );
 };
 

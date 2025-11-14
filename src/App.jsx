@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
-import { useEffect } from 'react';
-import { setGetTokenFunction } from './shared/services/axios';
+import { useAuthStore } from './features/authentication/authStore';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import LoginPage from './features/authentication/pages/LoginPage';
 import Register from './features/authentication/components/Register';
@@ -21,19 +19,7 @@ import SchoolAdministrationDashboard from './features/admin/components/SchoolAdm
 import { ROLES } from './utils/roles';
 
 function App() {
-  const { isSignedIn, isLoaded, getToken } = useAuth();
-
-  // Set up Clerk token getter for axios
-  useEffect(() => {
-    if (getToken) {
-      // Use getToken without template parameter
-      setGetTokenFunction(() => getToken());
-    }
-  }, [getToken]);
-
-  if (!isLoaded) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
-  }
+  const { token } = useAuthStore();
 
   return (
     <Router>
@@ -41,11 +27,11 @@ function App() {
         <Routes>
           <Route 
             path="/login" 
-            element={!isSignedIn ? <LoginPage /> : <Navigate to="/dashboard" />} 
+            element={!token ? <LoginPage /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/register" 
-            element={!isSignedIn ? <Register /> : <Navigate to="/dashboard" />} 
+            element={!token ? <Register /> : <Navigate to="/dashboard" />} 
           />
           
           <Route 

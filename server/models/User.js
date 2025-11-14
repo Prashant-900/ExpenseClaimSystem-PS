@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  clerkId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ['Student', 'Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance', 'Admin'], default: 'Student' },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['Student', 'Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance', 'Admin'], default: 'Faculty' },
   studentId: { 
     type: String, 
     required: function() {
@@ -13,10 +14,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
-  roleno: {
-    type: String,
-    default: ''
-  },
+  facultyEmail: { type: String },
   phone: { type: String },
   department: { 
     type: String, 
@@ -32,5 +30,15 @@ const userSchema = new mongoose.Schema({
   emailVerificationOTPHash: { type: String },
   emailVerificationOTPExpires: { type: Date }
 }, { timestamps: true });
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+userSchema.methods.comparePassword = async function(password) {
+  return bcrypt.compare(password, this.password);
+};
 
 export default mongoose.model('User', userSchema);

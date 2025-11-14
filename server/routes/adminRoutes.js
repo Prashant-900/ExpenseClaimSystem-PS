@@ -1,5 +1,4 @@
 import express from 'express';
-import { requireAuth } from '@clerk/express';
 import { 
   getAllUsers, 
   updateUserRole,
@@ -14,8 +13,7 @@ import { authenticate, authorize } from '../utils/authorizationMiddleware.js';
 
 const router = express.Router();
 
-// Apply Clerk auth to all routes
-router.use(requireAuth());
+// Apply JWT authentication to all routes
 router.use(authenticate);
 router.use(authorize('Admin'));
 

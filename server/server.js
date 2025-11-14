@@ -2,7 +2,6 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { clerkMiddleware } from '@clerk/express';
 import authRoutes from './routes/authRoutes.js';
 import expenseReportRoutes from './routes/expenseReportRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -33,9 +32,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-
-// Add Clerk middleware
-app.use(clerkMiddleware());
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,

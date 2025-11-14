@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuthStore } from '../../features/authentication/authStore';
 import { API_URL } from '../../config/api';
 
 // Hook to fetch user role from backend
@@ -7,13 +7,17 @@ export const useUserRole = () => {
   const [role, setRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getToken } = useAuth();
+  const { token } = useAuthStore();
 
   useEffect(() => {
     const fetchUserRole = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const token = await getToken();
         
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: {
@@ -38,7 +42,7 @@ export const useUserRole = () => {
     };
 
     fetchUserRole();
-  }, [getToken]);
+  }, [token]);
 
   return { role, isLoading, error };
 };

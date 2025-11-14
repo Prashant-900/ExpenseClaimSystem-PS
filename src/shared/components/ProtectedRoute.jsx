@@ -1,19 +1,14 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuthStore } from '../../features/authentication/authStore';
 import { hasRole } from '../../utils/roles';
 import { useUserRole } from '../hooks/useUserRole';
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { token } = useAuthStore();
   const { role, isLoading: roleLoading, error: roleError } = useUserRole();
 
-  // Still loading auth
-  if (!isLoaded) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
-  }
-
-  // Not signed in
-  if (!isSignedIn) {
+  // Not authenticated
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 

@@ -1,9 +1,7 @@
 // API Configuration
 const getApiBaseUrl = () => {
-  return 'http://localhost:5000';
+  return 'http://3.7.55.41:5000';
 };
-
-export const CLERK_KEY = "pk_test_ZnJlZS13YWhvby03MC5jbGVyay5hY2NvdW50cy5kZXYk";
 
 export const API_BASE_URL = getApiBaseUrl();
 export const API_URL = `${API_BASE_URL}/api`;

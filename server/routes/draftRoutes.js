@@ -1,13 +1,11 @@
 import express from 'express';
-import { requireAuth } from '@clerk/express';
 import { createDraft, getDrafts, getDraftById, updateDraft, deleteDraft } from '../controllers/draftController.js';
 import { authenticate, authorize } from '../utils/authorizationMiddleware.js';
 import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
-// Apply Clerk auth to all routes
-router.use(requireAuth());
+// Apply JWT authentication to all routes
 router.use(authenticate);
 
 router.post('/', authorize('Student', 'Faculty'), upload.array('images', 5), createDraft);

@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSignUp, useAuth } from '@clerk/clerk-react';
+import { useAuthStore } from '../authStore';
 import { SCHOOLS } from '../../../utils/schools';
 import { API_URL } from '../../../config/api';
-import OTPVerification from './OTPVerification';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -11,8 +10,7 @@ const Register = () => {
     email: '',
     password: '',
     department: '',
-    studentId: '',
-    roleno: ''
+    studentId: ''
   });
   const [error, setError] = useState('');
   const [otpStep, setOtpStep] = useState(false);
@@ -21,19 +19,15 @@ const Register = () => {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const { register, verifyEmail, resendOtp, isLoading } = useAuthStore();
   const navigate = useNavigate();
-  const { signUp } = useSignUp();
-  const { getToken } = useAuth();
   const departments = SCHOOLS.map(s => s.value);
   
-  // Check if email indicates student role and whether it's an IIT Mandi email
-  const validDomains = [
-    '@students.iitmandi.ac.in',
-    '@faculty.iitmandi.ac.in',
-    '@audit.iitmandi.ac.in',
-    '@finance.iitmandi.ac.in',
-    '@admin.iitmandi.ac.in'
-  ];
-  const isIITDomain = validDomains.some(d => formData.email?.endsWith(d));
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
+  // Check if email indicates student role
   const isStudentEmail = formData.email?.endsWith('@students.iitmandi.ac.in');
 
   // Auto-extract student ID from email when student email is entered
@@ -44,7 +38,7 @@ const Register = () => {
         setFormData(prev => ({ ...prev, studentId: rollNo }));
       }
     }
-  }, [formData.email, isStudentEmail]);
+  }, [formData.email, formData.studentId, isStudentEmail]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,22 +185,6 @@ const Register = () => {
               />
               <p className="mt-1 text-xs text-gray-500">
                 Auto-filled from your email address
-              </p>
-            </div>
-          )}
-
-          {!isIITDomain && (
-            <div>
-              <input
-                type="text"
-                required
-                className="form-input"
-                placeholder="Role No / ID (required for non-IIT emails)"
-                value={formData.roleno}
-                onChange={(e) => setFormData({ ...formData, roleno: e.target.value.trim() })}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Please enter your role number / external ID so admins can verify your account.
               </p>
             </div>
           )}

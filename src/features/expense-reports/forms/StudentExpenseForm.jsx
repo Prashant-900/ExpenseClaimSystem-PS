@@ -100,8 +100,18 @@ const StudentExpenseForm = ({ onSuccess }) => {
     // Only fetch faculty list when user is a Student
     const fetchFaculty = async () => {
       try {
-        const { data } = await API.get('/users/list?role=Faculty');
+        // Filter faculty by student's department
+        const department = user?.department || formData.department;
+        const url = department 
+          ? `/users/list?role=Faculty&department=${department}`
+          : '/users/list?role=Faculty';
+        
+        const { data } = await API.get(url);
         setFacultyList(data || []);
+        
+        if (data && data.length === 0 && department) {
+          console.warn(`No faculty found for department: ${department}`);
+        }
       } catch (error) {
         console.error('Failed to fetch faculty list:', error);
       }
@@ -110,7 +120,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
     if (userRole === 'Student') {
       fetchFaculty();
     }
-  }, [user, userRole]);
+  }, [user, userRole, formData.department]);
 
   const handleEditItem = (index) => {
     setEditingItem(index);

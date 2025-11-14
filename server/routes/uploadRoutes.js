@@ -1,13 +1,11 @@
 import express from 'express';
-import { requireAuth } from '@clerk/express';
 import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
 import { authenticate } from '../utils/authorizationMiddleware.js';
 import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
-// Apply Clerk auth to all routes
-router.use(requireAuth());
+// Apply JWT authentication to all routes
 router.use(authenticate);
 
 router.post('/', upload.single('file'), async (req, res) => {

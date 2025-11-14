@@ -1,22 +1,82 @@
 import { create } from 'zustand';
-import { useEffect } from 'react';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import axios from 'axios';
+import { API_URL } from '../../config/api';
+
+// Initialize from localStorage
+const getInitialState = () => {
+  try {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return { token, user };
+  } catch (error) {
+    console.error('Error initializing auth state:', error);
+    return { token: null, user: null };
+  }
+};
+
+const initialState = getInitialState();
 
 export const useAuthStore = create((set, get) => ({
-  user: null,
-  token: null,
+  user: initialState.user,
+  token: initialState.token,
   isLoading: false,
 
-  // Initialize from Clerk
-  initializeFromClerk: (clerkUser, clerkToken) => {
-    if (clerkUser && clerkToken) {
-      const userData = {
-        id: clerkUser.id,
-        name: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim() : clerkUser.emailAddresses[0].emailAddress,
-        email: clerkUser.emailAddresses[0].emailAddress,
-        profileImage: clerkUser.profileImageUrl,
-      };
-      set({ user: userData, token: clerkToken });
+  // Register new user with email/password
+  register: async (userData) => {
+    set({ isLoading: true });
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      set({ isLoading: false });
+      return { success: true, requiresVerification: true, email: response.data.email };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Registration failed' };
+    }
+  },
+
+  // Verify email with OTP
+  verifyEmail: async (email, otp) => {
+    set({ isLoading: true });
+    try {
+      const response = await axios.post(`${API_URL}/auth/verify-email`, { email, otp });
+      const { token, user } = response.data;
+      set({ token, user, isLoading: false });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Verification failed' };
+    }
+  },
+
+  // Resend OTP
+  resendOtp: async (email) => {
+    set({ isLoading: true });
+    try {
+      await axios.post(`${API_URL}/auth/resend-otp`, { email });
+      set({ isLoading: false });
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Failed to resend OTP' };
+    }
+  },
+
+  // Login with email/password
+  login: async (email, password) => {
+    set({ isLoading: true });
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const { token, user } = response.data;
+      set({ token, user, isLoading: false });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Login failed' };
     }
   },
 
@@ -50,22 +110,3 @@ export const useAuthStore = create((set, get) => ({
     return { user: get().user, token: get().token };
   }
 }));
-
-// Custom hook to sync Clerk auth with store
-export const useClerkAuthSync = () => {
-  const { user: clerkUser, isLoaded } = useUser();
-  const { getToken } = useAuth();
-  const { initializeFromClerk } = useAuthStore();
-
-  useEffect(() => {
-    if (isLoaded && clerkUser) {
-      getToken({ template: 'expenseclaim' }).then((token) => {
-        if (token) {
-          initializeFromClerk(clerkUser, token);
-        }
-      });
-    }
-  }, [clerkUser, isLoaded, getToken, initializeFromClerk]);
-
-  return { clerkUser, isLoaded };
-};

@@ -1,12 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
-import { useAuth } from '@clerk/clerk-react';
 import { useUserRole } from '../hooks/useUserRole';
-import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser } from 'react-icons/hi2';
+import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser, HiOutlineBars3 } from 'react-icons/hi2';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuthStore();
-  const { signOut } = useAuth();
   const { role } = useUserRole();
+  const navigate = useNavigate();
 
   // Use role from backend, fallback to user from store
   const userRole = role || user?.role;
@@ -15,7 +15,7 @@ const Navbar = ({ onMenuClick }) => {
     try {
       console.log('Logging out...');
       
-      // Clear local store first
+      // Clear local store
       logout();
       
       // Clear any localStorage items
@@ -25,10 +25,10 @@ const Navbar = ({ onMenuClick }) => {
       // Clear session storage
       sessionStorage.clear();
       
-      // Sign out from Clerk (this will redirect)
-      await signOut({ redirectUrl: '/login' });
-      
       console.log('Logout successful');
+      
+      // Redirect to login
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       
