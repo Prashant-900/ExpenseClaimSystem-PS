@@ -52,17 +52,18 @@ export const register = async (req, res) => {
       '@faculty.iitmandi.ac.in',
       '@audit.iitmandi.ac.in',
       '@finance.iitmandi.ac.in',
-      '@admin.iitmandi.ac.in'
+      '@admin.iitmandi.ac.in',
+      '@iitmandi.ac.in'
     ];
 
     const isValidDomain = validDomains.some(domain => email.endsWith(domain));
     if (!isValidDomain) {
       return res.status(400).json({ message: 'Invalid email domain. Use IIT Mandi email.' });
     }
-
-    // Assign role based on email domain - default to Faculty for all domains
-    let role = 'Faculty';
-    if (email.endsWith('@students.iitmandi.ac.in')) role = 'Student';
+    
+    // Assign role based on email domain
+    let role = 'Student';
+    if (email.endsWith('@faculty.iitmandi.ac.in') || email.endsWith('@iitmandi.ac.in')) role = 'Faculty';
     else if (email.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
     else if (email.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
     else if (email.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
@@ -204,7 +205,8 @@ export const login = async (req, res) => {
       '@faculty.iitmandi.ac.in',
       '@audit.iitmandi.ac.in',
       '@finance.iitmandi.ac.in',
-      '@admin.iitmandi.ac.in'
+      '@admin.iitmandi.ac.in',
+      '@iitmandi.ac.in'
     ];
     
     const isValidDomain = validDomains.some(domain => email.endsWith(domain));
