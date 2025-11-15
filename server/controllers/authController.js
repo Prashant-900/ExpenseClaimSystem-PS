@@ -45,7 +45,7 @@ const sendVerificationEmail = async (email, name, otp) => {
 export const register = async (req, res) => {
   try {
     const { name, email, password, facultyEmail, department, studentId } = req.body;
-    
+
     // Validate email domain
     const validDomains = [
       '@students.iitmandi.ac.in',
@@ -55,7 +55,7 @@ export const register = async (req, res) => {
       '@admin.iitmandi.ac.in',
       '@iitmandi.ac.in'
     ];
-    
+
     const isValidDomain = validDomains.some(domain => email.endsWith(domain));
     if (!isValidDomain) {
       return res.status(400).json({ message: 'Invalid email domain. Use IIT Mandi email.' });
@@ -67,7 +67,7 @@ export const register = async (req, res) => {
     else if (email.endsWith('@audit.iitmandi.ac.in')) role = 'Audit';
     else if (email.endsWith('@finance.iitmandi.ac.in')) role = 'Finance';
     else if (email.endsWith('@admin.iitmandi.ac.in')) role = 'Admin';
-    
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       if (existingUser.emailVerified) {
@@ -94,12 +94,12 @@ export const register = async (req, res) => {
     }
 
     const userData = { name, email, password, role, facultyEmail, department };
-    
+
     // Add studentId for students
     if (role === 'Student' && studentId) {
       userData.studentId = studentId;
     }
-    
+
     // Generate OTP and store hashed version
     const otp = generateOTP();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -124,30 +124,6 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-};
-
-const getProfileImageUrl = async (userId) => {
-  try {
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    const objectPath = `profiles/${userId}/profile.jpg`;
-    
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      return `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      return null;
-    }
-  } catch (error) {
-    return null;
   }
 };
 
@@ -214,6 +190,11 @@ export const resendVerificationOTP = async (req, res) => {
   }
 };
 
+const getProfileImageUrl = (userId) => {
+  // Return direct public S3 URL
+  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${userId}/profile.jpg`;
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -242,9 +223,9 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: 'Email not verified. Please complete verification before logging in.' });
     }
 
-    const profileImage = await getProfileImageUrl(user._id);
+    const profileImage = getProfileImageUrl(user._id);
     const token = generateToken(user._id);
-    
+
     res.json({
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role, studentId: user.studentId, department: user.department, profileImage }
@@ -258,18 +239,18 @@ export const updateProfile = async (req, res) => {
   try {
     const { name, phone, department, bio, studentId } = req.body;
     const updateData = { name, phone, department, bio };
-    
+
     // Only allow students to update studentId
     if (req.user.role === 'Student' && studentId !== undefined) {
       updateData.studentId = studentId;
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
       updateData,
       { new: true, runValidators: true }
     ).select('-password');
-    
+
     res.json({ user });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -279,17 +260,31 @@ export const updateProfile = async (req, res) => {
 export const uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: 'No profile image uploaded' });
     }
 
-    const { uploadToMinio } = await import('../middleware/fileUploadMiddleware.js');
-    const fileName = await uploadToMinio(req.file, req.user._id, 'profile');
-    const imageUrl = `http://localhost:5000/api/images/${fileName}?v=${Date.now()}`;
+    // Upload to S3
+    const { uploadToS3 } = await import('../middleware/fileUploadMiddleware.js');
+    const s3Key = await uploadToS3(req.file, req.user._id, 'profile');
+    
+    if (!s3Key) {
+      return res.status(500).json({ message: 'Failed to upload profile image to S3' });
+    }
 
-    res.json({ message: 'Profile image uploaded successfully', imageUrl });
+    // Update user's profile image reference in database (optional)
+    const user = await User.findById(req.user._id);
+    user.profileImage = s3Key;
+    await user.save();
+
+    const profileImageUrl = getProfileImageUrl(req.user._id);
+    
+    res.json({ 
+      message: 'Profile image uploaded successfully',
+      profileImage: profileImageUrl
+    });
   } catch (error) {
     console.error('Profile image upload error:', error);
-    res.status(500).json({ message: 'Failed to upload profile image' });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -299,10 +294,10 @@ export const getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Get profile image URL
-    const profileImage = await getProfileImageUrl(user._id);
-    
+
+    // Get profile image URL from S3
+    const profileImage = getProfileImageUrl(user._id);
+
     res.json({ ...user.toObject(), profileImage });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -16,7 +16,7 @@ const AdminDashboard = () => {
     try {
       const [usersRes, logsRes] = await Promise.all([
         API.get('/admin/users'),
-        API.get('/reimbursements')
+        API.get('/admin/logs')
       ]);
       
       const users = Array.isArray(usersRes.data) ? usersRes.data : [];

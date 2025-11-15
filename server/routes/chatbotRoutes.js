@@ -4,12 +4,11 @@ import { authenticate } from '../utils/authorizationMiddleware.js';
 
 const router = express.Router();
 
-router.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Chatbot service is running' });
-});
+// Apply JWT authentication to all routes
+router.use(authenticate);
 
-router.post('/chat', authenticate, chatWithBot);
-router.get('/history', authenticate, getChatHistory);
-router.delete('/history', authenticate, clearChatHistory);
+router.post('/chat', chatWithBot);
+router.get('/history', getChatHistory);
+router.delete('/history', clearChatHistory);
 
 export default router;

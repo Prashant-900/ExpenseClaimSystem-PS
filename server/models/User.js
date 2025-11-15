@@ -5,14 +5,14 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Student', 'Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance', 'Admin'], default: 'Student' },
+  role: { type: String, enum: ['Student', 'Faculty', 'School Chair', 'Dean SRIC', 'Director', 'Audit', 'Finance', 'Admin'], default: 'Faculty' },
   studentId: { 
     type: String, 
     required: function() {
       return this.role === 'Student';
     },
     unique: true,
-    sparse: true // Allows null values for non-students
+    sparse: true
   },
   facultyEmail: { type: String },
   phone: { type: String },

@@ -15,20 +15,13 @@ const FacultySubmissionsPage = () => {
 
   const fetchRequests = async () => {
     try {
-      // Fetch both faculty's reimbursements and expense reports
-      const [reimbursementResponse, expenseReportResponse] = await Promise.all([
-        API.get('/reimbursements/my-requests'),
-        API.get('/expense-reports')
-      ]);
+      // Fetch faculty's own expense reports
+      const expenseReportResponse = await API.get('/expense-reports');
       
-      const reimbursements = reimbursementResponse.data;
-      const expenseReports = expenseReportResponse.data;
+      const expenseReports = expenseReportResponse.data.filter(r => r.submitterRole === 'Faculty');
       
-      // Combine both types with type identifier
-      const allRequests = [
-        ...reimbursements.map(req => ({ ...req, type: 'reimbursement' })),
-        ...expenseReports.map(req => ({ ...req, type: 'expense-report' }))
-      ];
+      // Map with type identifier
+      const allRequests = expenseReports.map(req => ({ ...req, type: 'expense-report' }));
       
       // Sort by creation date
       allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

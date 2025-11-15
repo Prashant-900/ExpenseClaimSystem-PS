@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getCountryByCode, convertCurrency, formatCurrency } from '../../utils/countryStateData';
 import { generateExpenseReportPDF } from '../../utils/pdfGenerator';
+import { getImageUrl } from '../../config/api';
 import { HiOutlinePrinter } from 'react-icons/hi2';
 
 const ExpenseReportModal = ({ request, isOpen, onClose }) => {
@@ -283,10 +284,10 @@ const ExpenseReportModal = ({ request, isOpen, onClose }) => {
                 {request.images.map((image, index) => (
                   <div key={index} className="border rounded-lg overflow-hidden">
                     <img
-                      src={`http://localhost:5000/api/images/${image}`}
+                      src={getImageUrl(image)}
                       alt={`Receipt ${index + 1}`}
                       className="w-full h-32 object-cover cursor-pointer hover:opacity-75"
-                      onClick={() => window.open(`http://localhost:5000/api/images/${image}`, '_blank')}
+                      onClick={() => window.open(getImageUrl(image), '_blank')}
                     />
                     <div className="p-2 bg-gray-50">
                       <p className="text-sm text-gray-600">Receipt {index + 1}</p>

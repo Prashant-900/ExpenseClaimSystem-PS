@@ -1,6 +1,7 @@
 import { useAuthStore } from '../../authentication/authStore';
 import Layout from '../../../shared/layout/Layout';
 import StudentDashboard from '../components/StudentDashboard';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 
 import FacultyDashboard from '../components/FacultyDashboard';
 import FacultySubmissionsDashboard from '../components/FacultySubmissionsDashboard';
@@ -13,7 +14,6 @@ import AuditOverview from '../../expense-reports/pages/AuditOverview';
 import AuditPendingRequests from '../components/AuditPendingRequests';
 import AuditApprovalDashboard from '../../expense-reports/pages/AuditApprovalDashboard';
 import AuditApprovedRequests from '../../expense-reports/pages/AuditApprovedRequests';
-import AuditAllRequestsDashboard from '../components/AuditAllRequestsDashboard';
 import AuditAllDashboard from '../components/AuditAllDashboard';
 import ManagerDashboard from '../components/ManagerDashboard';
 import ManagerPendingDashboard from '../components/ManagerPendingDashboard';
@@ -26,7 +26,6 @@ import FinanceApprovedRequests from '../../expense-reports/pages/FinanceApproved
 import AdminDashboard from '../../admin/components/AdminDashboard';
 import UserManagementDashboard from '../../admin/components/UserManagementDashboard';
 import SystemLogsDashboard from '../../admin/components/SystemLogsDashboard';
-import ReimbursementForm from '../../reimbursements/forms/ReimbursementForm';
 import DraftsDashboard from '../components/DraftsDashboard';
 import ExpenseReportDashboard from '../../expense-reports/components/ExpenseReportDashboard';
 import ExpenseReportApprovalDashboard from '../../expense-reports/components/ExpenseReportApprovalDashboard';
@@ -43,13 +42,14 @@ import { useLocation } from 'react-router-dom';
 
 const DashboardPage = () => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
   const location = useLocation();
+
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
 
   const renderContent = () => {
     // Student routes
-    if (location.pathname === '/submit') {
-      return <ReimbursementForm onSuccess={() => window.location.href = '/drafts'} />;
-    }
     if (location.pathname === '/drafts') {
       return <DraftsDashboard />;
     }
@@ -137,7 +137,7 @@ const DashboardPage = () => {
     }
 
     // Dashboard routes
-    switch (user?.role) {
+    switch (userRole) {
       case 'Student':
         return <ExpenseReportDashboard />;
       case 'Faculty':

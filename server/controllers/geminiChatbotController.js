@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Pinecone } from '@pinecone-database/pinecone';
 import User from '../models/User.js';
-import Reimbursement from '../models/Reimbursement.js';
+import ExpenseReport from '../models/ExpenseReport.js';
 import ChatHistory from '../models/ChatHistory.js';
 
 // Initialize Gemini
@@ -24,20 +24,17 @@ const conversationHistories = new Map();
 const getUserContext = async (userId) => {
   try {
     const user = await User.findById(userId).select('-password');
-    const reimbursements = await Reimbursement.find({
-      $or: [
-        { studentId: userId },
-        { facultySubmitterId: userId }
-      ]
-    }).populate('studentId facultySubmitterId facultyId auditId', 'name email role');
+    const expenseReports = await ExpenseReport.find({
+      submitterId: userId
+    }).populate('submitterId', 'name email role');
 
     return {
       user,
-      reimbursements,
-      totalRequests: reimbursements.length,
-      pendingRequests: reimbursements.filter(r => r.status.includes('Pending')).length,
-      completedRequests: reimbursements.filter(r => r.status === 'Completed').length,
-      rejectedRequests: reimbursements.filter(r => r.status === 'Rejected').length,
+      expenseReports,
+      totalRequests: expenseReports.length,
+      pendingRequests: expenseReports.filter(r => r.status.includes('Pending')).length,
+      completedRequests: expenseReports.filter(r => r.status === 'Completed').length,
+      rejectedRequests: expenseReports.filter(r => r.status === 'Rejected').length,
     };
   } catch (error) {
     console.error('Error getting user context:', error);
@@ -46,22 +43,23 @@ const getUserContext = async (userId) => {
 };
 
 const createSystemPrompt = (userContext) => {
-  const { user, totalRequests, pendingRequests, completedRequests, rejectedRequests, reimbursements } = userContext;
+  const { user, totalRequests, pendingRequests, completedRequests, rejectedRequests, expenseReports } = userContext;
   
-  const recentActivity = reimbursements
+  const recentActivity = expenseReports
     .slice(0, 5)
-    .map(r => `${r.title}: ${r.status} ($${r.amount})`)
+    .map(r => `${r.purposeOfExpense}: ${r.status} (₹${r.totalAmount})`)
     .join('\n');
 
-  return `You are an AI assistant for the ExpenseClaim System at IIT Mandi. You help users with their reimbursement requests and system navigation.
+  return `You are an AI assistant for the ExpenseClaim System at IIT Mandi. You help users with their expense reports and system navigation.
 
 SYSTEM KNOWLEDGE:
-- ExpenseClaim System manages reimbursements for Travel, Meals, Accommodation, Office Supplies, and Miscellaneous expenses
-- Workflow: Student submits → Faculty reviews → Audit reviews → Finance approves → Completed
-- Faculty can submit requests directly to Audit (skip Faculty review)
-- Statuses: Pending - Faculty, Approved - Audit, Approved - Finance, Rejected, Completed, Sent Back - Faculty/Audit/Finance
-- Users can upload receipt images, edit sent-back requests, manage profiles with photos
-- Roles: Student (submit), Faculty (review + submit), Audit (review all), Finance (final approval), Admin (manage system)
+- ExpenseClaim System manages expense reports for Travel, Meals, Accommodation, Office Supplies, and Miscellaneous expenses
+- Workflow: Student/Faculty submits → Faculty/School Chair/Dean SRIC/Director → Audit → Finance → Completed
+- Multiple items can be added to a single expense report
+- Payment methods: University Credit Card (P-Card), Personal Funds (Reimbursement), Direct Invoice to University
+- Statuses: Draft, Submitted, Faculty Approved, School Chair Approved, Dean SRIC Approved, Director Approved, Audit Approved, Finance Approved, Completed, Rejected
+- Users can upload receipt images, edit drafts, manage profiles with photos
+- Roles: Student (submit), Faculty (review + submit), School Chair, Dean SRIC, Director, Audit (review all), Finance (final approval), Admin (manage system)
 
 CURRENT USER CONTEXT:
 - Name: ${user.name}
@@ -125,10 +123,10 @@ const storeUserContext = async (userId, userContext) => {
   if (!pineconeIndex) return;
   
   try {
-    const { user, reimbursements } = userContext;
+    const { user, expenseReports } = userContext;
     
     // Store user profile context
-    const profileContent = `User ${user.name} (${user.role}) has ${reimbursements.length} total requests. Recent activity includes reimbursements for various expenses.`;
+    const profileContent = `User ${user.name} (${user.role}) has ${expenseReports.length} total requests. Recent activity includes expense reports for various expenses.`;
     const profileEmbedding = await getEmbedding(profileContent);
     
     if (profileEmbedding) {
@@ -145,9 +143,9 @@ const storeUserContext = async (userId, userContext) => {
       }]);
     }
     
-    // Store recent reimbursement contexts
-    for (const request of reimbursements.slice(0, 5)) {
-      const requestContent = `${user.name} submitted a ${request.expenseType} reimbursement for $${request.amount}: ${request.title}. Status: ${request.status}. ${request.description || ''}`;
+    // Store recent expense report contexts
+    for (const request of expenseReports.slice(0, 5)) {
+      const requestContent = `${user.name} submitted an expense report for ${request.purposeOfExpense}: ₹${request.totalAmount}. Status: ${request.status}. Report Type: ${request.reportType}`;
       const requestEmbedding = await getEmbedding(requestContent);
       
       if (requestEmbedding) {
@@ -412,11 +410,11 @@ export const initializeKnowledgeBase = async () => {
     }
     const knowledgeBase = [
       {
-        content: "ExpenseClaim System is a reimbursement management system for IIT Mandi. Users can submit expense requests for Travel, Meals, Accommodation, Office Supplies, and Miscellaneous expenses.",
+        content: "ExpenseClaim System is an expense management system for IIT Mandi. Users can submit expense reports for Travel, Meals, Accommodation, Office Supplies, and Miscellaneous expenses.",
         metadata: { type: "system_info" }
       },
       {
-        content: "The approval workflow: Student submits → Faculty reviews → Audit reviews → Finance approves → Completed. Faculty can submit directly to Audit.",
+        content: "The approval workflow: Student/Faculty submits → Faculty/School Chair/Dean SRIC/Director → Audit → Finance → Completed.",
         metadata: { type: "workflow" }
       },
       {

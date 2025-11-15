@@ -1,43 +1,49 @@
 import { create } from 'zustand';
-import API from '../../shared/services/axios.js';
+import axios from 'axios';
+import { API_URL } from '../../config/api';
+
+// Initialize from localStorage
+const getInitialState = () => {
+  try {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return { token, user };
+  } catch (error) {
+    console.error('Error initializing auth state:', error);
+    return { token: null, user: null };
+  }
+};
+
+const initialState = getInitialState();
 
 export const useAuthStore = create((set, get) => ({
-  user: null,
-  token: localStorage.getItem('token'),
+  user: initialState.user,
+  token: initialState.token,
   isLoading: false,
 
-  login: async (credentials) => {
-    set({ isLoading: true });
-    try {
-      const { data } = await API.post('/auth/login', credentials);
-      localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
-      return { success: true };
-    } catch (error) {
-      set({ isLoading: false });
-      return { success: false, error: error.response?.data?.message || 'Login failed' };
-    }
-  },
-
+  // Register new user with email/password
   register: async (userData) => {
     set({ isLoading: true });
     try {
-      const { data } = await API.post('/auth/register', userData);
-      // Backend now returns message + email, no token until verification
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
       set({ isLoading: false });
-      return { success: true, requiresVerification: true, email: data.email, message: data.message };
+      return { success: true, requiresVerification: true, email: response.data.email };
     } catch (error) {
       set({ isLoading: false });
       return { success: false, error: error.response?.data?.message || 'Registration failed' };
     }
   },
 
+  // Verify email with OTP
   verifyEmail: async (email, otp) => {
     set({ isLoading: true });
     try {
-      const { data } = await API.post('/auth/verify-email', { email, otp });
-      localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
+      const response = await axios.post(`${API_URL}/auth/verify-email`, { email, otp });
+      const { token, user } = response.data;
+      set({ token, user, isLoading: false });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       return { success: true };
     } catch (error) {
       set({ isLoading: false });
@@ -45,39 +51,62 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Resend OTP
   resendOtp: async (email) => {
+    set({ isLoading: true });
     try {
-      await API.post('/auth/resend-otp', { email });
+      await axios.post(`${API_URL}/auth/resend-otp`, { email });
+      set({ isLoading: false });
       return { success: true };
     } catch (error) {
+      set({ isLoading: false });
       return { success: false, error: error.response?.data?.message || 'Failed to resend OTP' };
     }
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, token: null });
-  },
-
-  checkAuth: async () => {
-    const token = get().token;
-    if (!token) return;
-    
+  // Login with email/password
+  login: async (email, password) => {
+    set({ isLoading: true });
     try {
-      const { data } = await API.get('/auth/me');
-      set({ user: data });
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const { token, user } = response.data;
+      set({ token, user, isLoading: false });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      return { success: true };
     } catch (error) {
-      if (error.response?.status === 401) {
-        get().logout();
-      }
+      set({ isLoading: false });
+      return { success: false, error: error.response?.data?.message || 'Login failed' };
     }
   },
 
+  // Logout - clears local store and all auth data
+  logout: () => {
+    console.log('Clearing auth store...');
+    set({ user: null, token: null, isLoading: false });
+    
+    // Clear localStorage and sessionStorage
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+    } catch (err) {
+      console.error('Error clearing storage:', err);
+    }
+  },
+
+  // Update user
+  updateUser: (userData) => {
+    set({ user: { ...get().user, ...userData } });
+  },
+
+  // Set auth data
   setAuthData: (token, user) => {
     set({ token, user });
   },
 
-  updateUser: (userData) => {
-    set({ user: { ...get().user, ...userData } });
+  // Get current auth state
+  getAuthState: () => {
+    return { user: get().user, token: get().token };
   }
 }));

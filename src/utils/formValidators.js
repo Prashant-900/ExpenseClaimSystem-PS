@@ -1,23 +1,44 @@
-export const validateEmail = (email) => {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
-};
+/**
+ * Form Validation Utilities
+ * Provides common validation functions for form inputs
+ */
 
-export const validateReimbursement = (data) => {
+/**
+ * Validate expense item
+ * @param {Object} item - The expense item to validate
+ * @returns {Object} { isValid: boolean, errors: Object }
+ */
+export const validateExpenseItem = (item) => {
   const errors = {};
-  
-  if (!data.amount || data.amount <= 0) {
-    errors.amount = 'Amount must be greater than 0';
+
+  if (!item.date) {
+    errors.date = 'Date is required';
   }
-  
-  if (!data.description?.trim()) {
-    errors.description = 'Description is required';
-  }
-  
-  if (!data.category?.trim()) {
+
+  if (!item.category) {
     errors.category = 'Category is required';
   }
-  
+
+  if (!item.description?.trim()) {
+    errors.description = 'Description is required';
+  }
+
+  if (!item.amount || item.amount <= 0) {
+    errors.amount = 'Amount must be greater than 0';
+  }
+
+  if (!item.paymentMethod) {
+    errors.paymentMethod = 'Payment method is required';
+  }
+
+  if (!item.businessPurpose?.trim()) {
+    errors.businessPurpose = 'Business purpose is required';
+  }
+
+  if (!item.receiptImage) {
+    errors.receiptImage = 'Receipt image is required';
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors

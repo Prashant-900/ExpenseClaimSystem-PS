@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../authStore';
-import { validateEmail } from '../../../utils/formValidators';
-import GoogleAuth from './GoogleAuth';
 import { SCHOOLS } from '../../../utils/schools';
+import { API_URL } from '../../../config/api';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -22,8 +21,14 @@ const Register = () => {
   const navigate = useNavigate();
   const departments = SCHOOLS.map(s => s.value);
   
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
   // Check if email indicates student role
-  const isStudentEmail = formData.email.endsWith('@students.iitmandi.ac.in');
+  const isStudentEmail = formData.email?.endsWith('@students.iitmandi.ac.in');
 
   // Auto-extract student ID from email when student email is entered
   useEffect(() => {
@@ -33,7 +38,7 @@ const Register = () => {
         setFormData(prev => ({ ...prev, studentId: rollNo }));
       }
     }
-  }, [formData.email, isStudentEmail]);
+  }, [formData.email, formData.studentId, isStudentEmail]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,7 +136,6 @@ const Register = () => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
-          
           <div>
             <input
               type="email"
@@ -185,7 +189,6 @@ const Register = () => {
             </div>
           )}
 
-
           <div>
             <button
               type="submit"
@@ -195,17 +198,6 @@ const Register = () => {
               {isLoading ? 'Creating account...' : 'Sign up'}
             </button>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or</span>
-            </div>
-          </div>
-
-          <GoogleAuth />
 
           <div className="text-center">
             <Link to="/login" className="text-gray-600 hover:text-gray-800">

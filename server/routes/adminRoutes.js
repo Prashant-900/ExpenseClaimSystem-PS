@@ -13,6 +13,7 @@ import { authenticate, authorize } from '../utils/authorizationMiddleware.js';
 
 const router = express.Router();
 
+// Apply JWT authentication to all routes
 router.use(authenticate);
 router.use(authorize('Admin'));
 

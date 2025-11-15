@@ -12,24 +12,20 @@ const FacultyDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [studentReimbursements, facultyReimbursements, expenseReports] = await Promise.all([
-        API.get('/reimbursements/student-requests'),
-        API.get('/reimbursements/my-requests'),
-        API.get('/expense-reports')
-      ]);
+      const expenseReports = await API.get('/expense-reports');
       
-      const studentData = studentReimbursements.data;
-      const facultyReimbursementData = facultyReimbursements.data;
-      const facultyExpenseReports = expenseReports.data.filter(r => r.submitterId && r.submitterRole === 'Faculty');
+      const expenseReportData = expenseReports.data;
       
-      // Student requests stats (reimbursements only)
-      const studentPending = studentData.filter(r => r.status === 'Pending - Faculty Review').length;
-      const studentApproved = studentData.filter(r => r.facultyRemarks && (r.status === 'Pending - Audit Review' || r.status === 'Pending - Finance Review' || r.status === 'Completed')).length;
-      const studentRejected = studentData.filter(r => r.status === 'Rejected' && r.facultyRemarks).length;
-      const studentSentBack = studentData.filter(r => r.status === 'Sent Back - Faculty').length;
+      // Student submissions stats
+      const studentSubmissions = expenseReportData.filter(r => r.submitterRole === 'Student');
+      const studentPending = studentSubmissions.filter(r => r.status === 'Submitted').length;
+      const studentApproved = studentSubmissions.filter(r => r.facultyApproval?.approved).length;
+      const studentRejected = studentSubmissions.filter(r => r.status === 'Rejected').length;
+      const studentSentBack = 0; // Adjust based on your logic
       
-      // Faculty's own requests stats (both reimbursements and expense reports)
-      const myRequests = facultyReimbursementData.length + facultyExpenseReports.length;
+      // Faculty's own requests stats
+      const facultySubmissions = expenseReportData.filter(r => r.submitterRole === 'Faculty');
+      const myRequests = facultySubmissions.length;
       
       setStats({ 
         studentPending, 

@@ -1,17 +1,19 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import passport from 'passport';
 import User from '../models/User.js';
-import { register, login, updateProfile, getUserProfile, uploadProfileImage, verifyEmail, resendVerificationOTP } from '../controllers/authController.js';
 import { authenticate } from '../utils/authorizationMiddleware.js';
+import { register, verifyEmail, resendVerificationOTP, login, updateProfile, uploadProfileImage } from '../controllers/authController.js';
 import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
+// Authentication routes
 router.post('/register', register);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-otp', resendVerificationOTP);
 router.post('/login', login);
+
+// Get current user
 router.get('/me', async (req, res) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -21,25 +23,8 @@ router.get('/me', async (req, res) => {
     const user = await User.findById(decoded.id).select('-password');
     if (!user) return res.status(401).json({ message: 'Invalid token' });
 
-    // Get current profile image from MinIO
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    const objectPath = `profiles/${user._id}/profile.jpg`;
-    let profileImage = null;
-    
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      profileImage = `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      // No profile image exists
-    }
+    // Get profile image URL from S3 (direct public URL)
+    const profileImage = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${user._id}/profile.jpg`;
 
     res.json({ ...user.toObject(), profileImage });
   } catch (error) {
@@ -47,18 +32,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
-
-router.get('/google/callback', 
-  passport.authenticate('google', { session: false }),
-  (req, res) => {
-    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
-  }
-);
-
+// Profile management routes (protected)
 router.patch('/profile', authenticate, updateProfile);
 router.post('/upload-profile-image', authenticate, upload.single('profileImage'), uploadProfileImage);
 

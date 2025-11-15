@@ -1,46 +1,32 @@
 import User from '../models/User.js';
-
-const getProfileImageUrl = async (userId) => {
-  try {
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    const objectPath = `profiles/${userId}/profile.jpg`;
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      return `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      return null;
-    }
-  } catch (error) {
-    return null;
-  }
-};
+import { attachProfileImagesToUsers } from '../utils/imageUtils.js';
+import { ErrorTypes } from '../utils/appError.js';
 
 export const getUsersByRole = async (req, res) => {
   try {
-    const role = req.query.role;
-    const department = req.query.department;
+    const { role, department } = req.query;
     if (!role) return res.status(400).json({ message: 'Role query param is required' });
 
-    const query = { role };
-    if (department) query.department = department;
-
-    console.log('getUsersByRole query:', query);
-    const users = await User.find(query).select('-password');
-    console.log(`Found ${users.length} users matching query`);
+    // Build query
+    const query = { role, emailVerified: true }; // Only return verified users
     
-    for (const user of users) {
-      user.profileImage = await getProfileImageUrl(user._id);
+    // Add department filter if provided
+    if (department) {
+      query.department = department;
     }
-    res.json(users);
+
+    const users = await User.find(query).select('-password -emailVerificationOTPHash -emailVerificationOTPExpires');
+    
+    // Add profile image URLs
+    const usersWithImages = users.map(user => {
+      const userObj = user.toObject();
+      userObj.profileImage = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${user._id}/profile.jpg`;
+      return userObj;
+    });
+    
+    res.json(usersWithImages);
   } catch (error) {
-    console.error('Error in getUsersByRole:', error);
+    console.error('getUsersByRole error:', error);
     res.status(500).json({ message: error.message });
   }
 };

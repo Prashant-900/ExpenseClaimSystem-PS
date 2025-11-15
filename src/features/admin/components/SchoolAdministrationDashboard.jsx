@@ -24,9 +24,6 @@ const SchoolAdministrationDashboard = () => {
       setSchoolAdmins(adminsRes.data);
       setFacultyList(facultyRes.data);
       
-      console.log('Faculty List:', facultyRes.data);
-      console.log('Total Faculty:', facultyRes.data.length);
-      
       // Find institute-wide assignments
       const instituteAdmin = adminsRes.data.find(a => a.school === 'Institute');
       if (instituteAdmin) {

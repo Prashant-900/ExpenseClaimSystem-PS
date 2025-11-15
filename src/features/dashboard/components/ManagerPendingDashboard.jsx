@@ -17,9 +17,10 @@ const ManagerPendingPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await API.get('/reimbursements?pending=true');
-      setRequests(data);
-      setFilteredRequests(data);
+      const { data } = await API.get('/expense-reports');
+      const pendingRequests = data.filter(r => r.status && r.status.includes('Pending'));
+      setRequests(pendingRequests);
+      setFilteredRequests(pendingRequests);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
     } finally {
@@ -68,8 +69,8 @@ const ManagerPendingPage = () => {
 
   const confirmAction = async () => {
     try {
-      await API.patch(`/reimbursements/${actionModal.requestId}/status`, {
-        status: actionModal.action,
+      await API.patch(`/expense-reports/${actionModal.requestId}/approve`, {
+        action: actionModal.action,
         remarks
       });
       

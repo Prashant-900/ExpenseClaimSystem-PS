@@ -5,6 +5,7 @@ import upload from '../middleware/fileUploadMiddleware.js';
 
 const router = express.Router();
 
+// Apply JWT authentication to all routes
 router.use(authenticate);
 
 router.post('/', authorize('Student', 'Faculty'), upload.array('images', 5), createDraft);

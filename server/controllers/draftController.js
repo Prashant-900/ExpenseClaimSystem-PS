@@ -1,5 +1,5 @@
 import Draft from '../models/Draft.js';
-import { uploadToMinio } from '../middleware/fileUploadMiddleware.js';
+import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
 
 export const createDraft = async (req, res) => {
   try {
@@ -15,7 +15,7 @@ export const createDraft = async (req, res) => {
     let imageFileNames = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const fileName = await uploadToMinio(file, req.user._id);
+        const fileName = await uploadToS3(file, req.user._id);
         imageFileNames.push(fileName);
       }
     }
@@ -70,7 +70,7 @@ export const updateDraft = async (req, res) => {
     let imageFileNames = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const fileName = await uploadToMinio(file, req.user._id);
+        const fileName = await uploadToS3(file, req.user._id);
         imageFileNames.push(fileName);
       }
     }

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from '../components/ExpenseItemForm';
-import { formatCurrency } from '../../../utils/currencyUtils';
 
 const StudentExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   const [formData, setFormData] = useState({
     studentId: user?.studentId || '',
     studentName: user?.name || '',
@@ -96,17 +100,27 @@ const StudentExpenseForm = ({ onSuccess }) => {
     // Only fetch faculty list when user is a Student
     const fetchFaculty = async () => {
       try {
-        const { data } = await API.get('/users/list?role=Faculty');
+        // Filter faculty by student's department
+        const department = user?.department || formData.department;
+        const url = department 
+          ? `/users/list?role=Faculty&department=${department}`
+          : '/users/list?role=Faculty';
+        
+        const { data } = await API.get(url);
         setFacultyList(data || []);
+        
+        if (data && data.length === 0 && department) {
+          console.warn(`No faculty found for department: ${department}`);
+        }
       } catch (error) {
         console.error('Failed to fetch faculty list:', error);
       }
     };
 
-    if (user?.role === 'Student') {
+    if (userRole === 'Student') {
       fetchFaculty();
     }
-  }, [user]);
+  }, [user, userRole, formData.department]);
 
   const handleEditItem = (index) => {
     setEditingItem(index);
@@ -231,7 +245,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                 required
               />
             </div>
-            {user?.role === 'Student' && (
+            {userRole === 'Student' && (
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-2">Select Faculty for Submission</label>
                 <select
@@ -303,7 +317,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-medium">{item.category}</h4>
                         <span className="text-lg font-bold text-green-600">
-                          {formatCurrency(item.amountInINR, 'INR')}
+                          ₹{item.amountInINR?.toFixed(2) || '0.00'}
                         </span>
                       </div>
                       <p className="text-gray-600 text-sm">{item.description}</p>
@@ -334,7 +348,7 @@ const StudentExpenseForm = ({ onSuccess }) => {
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span>Total Amount:</span>
                   <span className="text-green-600">
-                    {formatCurrency(formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0), 'INR')}
+                    ₹{formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0).toFixed(2)}
                   </span>
                 </div>
               </div>

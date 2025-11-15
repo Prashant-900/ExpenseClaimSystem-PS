@@ -12,9 +12,9 @@ const ManagerDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const { data } = await API.get('/reimbursements');
-      const pending = data.filter(r => r.status === 'Pending - Manager').length;
-      const approved = data.filter(r => r.status === 'Approved - Finance' || r.status === 'Completed').length;
+      const { data } = await API.get('/expense-reports');
+      const pending = data.filter(r => r.status && r.status.includes('Pending')).length;
+      const approved = data.filter(r => r.status === 'Completed').length;
       const rejected = data.filter(r => r.status === 'Rejected').length;
       const total = data.length;
       

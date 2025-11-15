@@ -1,12 +1,45 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
+import { useUserRole } from '../hooks/useUserRole';
 import { HiOutlineBriefcase, HiOutlineArrowRightOnRectangle, HiOutlineUser, HiOutlineBars3 } from 'react-icons/hi2';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuthStore();
+  const { role } = useUserRole();
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/login';
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
+
+  const handleLogout = async () => {
+    try {
+      console.log('Logging out...');
+      
+      // Clear local store
+      logout();
+      
+      // Clear any localStorage items
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      console.log('Logout successful');
+      
+      // Redirect to login
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Fallback: force clear everything and redirect
+      logout();
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Force redirect to login
+      window.location.href = '/login';
+    }
   };
 
   return (
@@ -25,7 +58,7 @@ const Navbar = ({ onMenuClick }) => {
             </div>
             <div className="hidden sm:block">
               <h1 className="text-lg font-semibold text-gray-900">ExpenseClaim System</h1>
-              <p className="text-xs text-gray-500">Reimbursement Management</p>
+              <p className="text-xs text-gray-500">Expense Report Management</p>
             </div>
             <div className="sm:hidden">
               <h1 className="text-base font-semibold text-gray-900">ExpenseClaim</h1>
@@ -35,7 +68,7 @@ const Navbar = ({ onMenuClick }) => {
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-              <p className="text-xs text-gray-500">{user?.role}</p>
+              <p className="text-xs text-gray-500">{userRole}</p>
             </div>
             <a href="/profile" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
               {user?.profileImage ? (

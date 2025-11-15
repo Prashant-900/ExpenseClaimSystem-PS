@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../../../shared/services/axios';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import ExpenseReportDetailModal from '../../../shared/components/ExpenseReportDetailModal';
 
 const ExpenseReportApprovalDashboard = () => {
@@ -10,6 +11,10 @@ const ExpenseReportApprovalDashboard = () => {
   const [remarks, setRemarks] = useState('');
   const [detailModal, setDetailModal] = useState(null);
   const { user } = useAuthStore();
+  const { role } = useUserRole();
+
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
 
   useEffect(() => {
     fetchReports();
@@ -47,9 +52,9 @@ const ExpenseReportApprovalDashboard = () => {
   };
 
   const canApprove = (report) => {
-    if (user?.role === 'Faculty' && report.status === 'Submitted') return true;
-    if (user?.role === 'Audit' && report.status === 'Faculty Approved') return true;
-    if (user?.role === 'Finance' && report.status === 'Audit Approved') return true;
+    if (userRole === 'Faculty' && report.status === 'Submitted') return true;
+    if (userRole === 'Audit' && report.status === 'Faculty Approved') return true;
+    if (userRole === 'Finance' && report.status === 'Audit Approved') return true;
     return false;
   };
 

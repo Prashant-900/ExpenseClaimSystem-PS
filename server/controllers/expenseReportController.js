@@ -1,7 +1,10 @@
 import ExpenseReport from '../models/ExpenseReport.js';
 import User from '../models/User.js';
-import { uploadToMinio } from '../middleware/fileUploadMiddleware.js';
-import { canUserApprove, getNextApproverRole, getSchoolChair, getDeanSRIC, getDirector } from '../utils/approvalWorkflow.js';
+import { uploadToS3 } from '../middleware/fileUploadMiddleware.js';
+import { getSchoolChair, getDeanSRIC, getDirector } from '../utils/approvalWorkflow.js';
+import { getProfileImageUrl } from '../utils/imageUtils.js';
+import { recalculateTotals } from '../utils/expenseUtils.js';
+import { ErrorTypes } from '../utils/appError.js';
 
 export const createExpenseReport = async (req, res) => {
   try {
@@ -58,30 +61,6 @@ export const createExpenseReport = async (req, res) => {
     }
     
     res.status(500).json({ message: error.message });
-  }
-};
-
-const getProfileImageUrl = async (userId) => {
-  try {
-    const { Client } = await import('minio');
-    const minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: false,
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY
-    });
-    
-    const objectPath = `profiles/${userId}/profile.jpg`;
-    
-    try {
-      await minioClient.statObject(process.env.MINIO_BUCKET, objectPath);
-      return `http://localhost:5000/api/images/${objectPath}`;
-    } catch (error) {
-      return null;
-    }
-  } catch (error) {
-    return null;
   }
 };
 
@@ -181,7 +160,6 @@ export const getExpenseReports = async (req, res) => {
             { status: 'Director Approved' }
           ]
         };
-        console.log('Audit query:', query);
       }
     } else if (req.user.role === 'Finance') {
       if (req.query.processed === 'true') {
@@ -198,16 +176,11 @@ export const getExpenseReports = async (req, res) => {
       .populate('facultyId', 'name email department')
       .sort({ createdAt: -1 });
     
-    if (req.user.role === 'Audit') {
-      console.log('Found reports for audit:', reports.length);
-      console.log('Report details:', reports.map(r => ({ id: r._id, status: r.status, submitter: r.submitterRole, submitterId: r.submitterId?.name })));
-    }
-    
     // Add profile images
     const reportsWithImages = await Promise.all(reports.map(async (report) => {
       const reportObj = report.toObject();
       if (reportObj.submitterId) {
-        reportObj.submitterId.profileImage = await getProfileImageUrl(reportObj.submitterId._id);
+        reportObj.submitterId.profileImage = getProfileImageUrl(reportObj.submitterId._id);
       }
       return reportObj;
     }));
@@ -219,19 +192,7 @@ export const getExpenseReports = async (req, res) => {
 };
 
 // Helper function to recalculate totals
-const recalculateTotals = (report) => {
-  if (report.items && report.items.length > 0) {
-    report.totalAmount = report.items.reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
-    report.universityCardAmount = report.items
-      .filter(item => item.paymentMethod === 'University Credit Card (P-Card)')
-      .reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
-    report.personalAmount = report.items
-      .filter(item => item.paymentMethod === 'Personal Funds (Reimbursement)')
-      .reduce((sum, item) => sum + (item.amountInINR || item.amount || 0), 0);
-    report.netReimbursement = report.personalAmount - (report.nonReimbursableAmount || 0);
-  }
-  return report;
-};
+// NOTE: Moved to expenseUtils.js - Using imported function instead
 
 export const getExpenseReportById = async (req, res) => {
   try {
@@ -666,7 +627,7 @@ export const addExpenseItem = async (req, res) => {
     
     let receiptFileName = '';
     if (req.file) {
-      receiptFileName = await uploadToMinio(req.file, req.user._id);
+      receiptFileName = await uploadToS3(req.file, req.user._id);
     }
     
     const newItem = {
@@ -734,64 +695,33 @@ export const deleteExpenseItem = async (req, res) => {
   }
 };
 
-// DEBUG: Test endpoint to see all reports
-export const getAllReportsDebug = async (req, res) => {
-  try {
-    const allReports = await ExpenseReport.find({})
-      .populate('submitterId', 'name email role')
-      .sort({ createdAt: -1 });
-    
-    console.log('=== ALL REPORTS DEBUG ===');
-    console.log('Total reports:', allReports.length);
-    allReports.forEach(report => {
-      console.log(`ID: ${report._id}, Status: ${report.status}, Submitter: ${report.submitterRole}, Name: ${report.submitterId?.name}`);
-    });
-    
-    res.json(allReports.map(r => ({
-      id: r._id,
-      status: r.status,
-      submitterRole: r.submitterRole,
-      submitterName: r.submitterId?.name,
-      createdAt: r.createdAt
-    })));
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+// DEBUG: Test endpoint to see all reports - REMOVED (not needed in production)
 
 export const deleteExpenseReport = async (req, res) => {
   try {
-    console.log('Delete request for report ID:', req.params.id);
-    console.log('User:', req.user?.email, req.user?.role);
-    
     const report = await ExpenseReport.findById(req.params.id);
     
     if (!report) {
-      console.log('Report not found');
-      return res.status(404).json({ message: 'Report not found' });
+      const error = ErrorTypes.REPORT_NOT_FOUND();
+      return res.status(error.statusCode).json({ message: error.message });
     }
-    
-    console.log('Report status:', report.status);
-    console.log('Report faculty ID:', report.facultyId);
     
     // Only allow deletion if report is in Draft status
     if (report.status !== 'Draft') {
-      console.log('Cannot delete - not in draft status');
-      return res.status(400).json({ message: 'Cannot delete submitted reports' });
+      const error = ErrorTypes.INVALID_STATE('Cannot delete submitted reports');
+      return res.status(error.statusCode).json({ message: error.message });
     }
     
     // Check if user owns the report
     if (report.submitterId.toString() !== req.user._id.toString()) {
-      console.log('User does not own this report');
-      return res.status(403).json({ message: 'You can only delete your own reports' });
+      const error = ErrorTypes.FORBIDDEN();
+      return res.status(error.statusCode).json({ message: error.message });
     }
     
     await ExpenseReport.findByIdAndDelete(req.params.id);
-    console.log('Report deleted successfully');
-    
     res.json({ message: 'Report deleted successfully' });
   } catch (error) {
-    console.error('Delete error:', error);
-    res.status(500).json({ message: error.message });
+    const appError = ErrorTypes.INTERNAL_ERROR(error.message);
+    res.status(appError.statusCode).json({ message: appError.message });
   }
 };

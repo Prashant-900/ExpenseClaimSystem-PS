@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../features/authentication/authStore';
+import { useUserRole } from '../hooks/useUserRole';
 import { 
   HiOutlineChartBarSquare, 
   HiOutlinePlus, 
@@ -15,17 +16,21 @@ import {
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
   const location = useLocation();
 
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
+
   const getNavItems = () => {
-    if (user?.role === 'Student') {
+    if (userRole === 'Student') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/create-report', label: 'Create Report', icon: HiOutlinePlus }
       ];
     }
     
-    if (user?.role === 'Faculty') {
+    if (userRole === 'Faculty') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/create-report', label: 'Create Report', icon: HiOutlinePlus },
@@ -34,7 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'School Chair') {
+    if (userRole === 'School Chair') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/school-chair/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -42,7 +47,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'Dean SRIC') {
+    if (userRole === 'Dean SRIC') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/dean-sric/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -50,7 +55,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'Director') {
+    if (userRole === 'Director') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/director/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -58,7 +63,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'Audit') {
+    if (userRole === 'Audit') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/expense-reports/audit/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -66,7 +71,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'Finance') {
+    if (userRole === 'Finance') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/finance/approvals', label: 'Pending Approvals', icon: HiOutlineClock },
@@ -74,7 +79,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
     
-    if (user?.role === 'Admin') {
+    if (userRole === 'Admin') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: HiOutlineChartBarSquare },
         { path: '/users', label: 'Manage Users', icon: HiOutlineUsers },
@@ -88,7 +93,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Backdrop overlay for mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -98,34 +103,35 @@ const Sidebar = ({ isOpen, onClose }) => {
       
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gray-800 text-white transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col
+        fixed lg:static inset-y-0 left-0 z-50
+        bg-gray-800 text-white w-64 h-full flex flex-col
+        transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Mobile close button */}
-        <div className="lg:hidden flex justify-end p-4">
-          <button
-            onClick={onClose}
-            className="text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700"
-          >
-            <HiOutlineXMark className="w-6 h-6" />
-          </button>
-        </div>
-        
+        {/* Close button for mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden absolute top-4 right-4 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700"
+          aria-label="Close sidebar"
+        >
+          <HiOutlineXMark className="w-6 h-6" />
+        </button>
+
         <div className="p-6 border-b border-gray-600">
           <h2 className="text-xl font-bold text-white">ExpenseClaim</h2>
           <div className="mt-2 flex items-center">
             <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></div>
-            <p className="text-gray-300 text-sm font-medium">{user?.role}</p>
+            <p className="text-gray-300 text-sm font-medium">{userRole}</p>
           </div>
         </div>
-        
-        <nav className="flex-1 p-4">
+
+        <nav className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-1">
             {getNavItems().map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={() => onClose()}
+                onClick={() => onClose()} // Close sidebar on navigation in mobile
                 className={`flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
                   location.pathname === item.path
                     ? 'bg-gray-700 text-white'
@@ -138,7 +144,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             ))}
           </div>
         </nav>
-        
+
         <div className="p-4 border-t border-gray-600">
           <div className="text-xs text-gray-400">
             © 2025 ExpenseClaim System

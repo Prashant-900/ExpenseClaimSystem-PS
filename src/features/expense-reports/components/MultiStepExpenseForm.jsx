@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../authentication/authStore';
+import { useUserRole } from '../../../shared/hooks/useUserRole';
 import API from '../../../shared/services/axios';
 import ExpenseItemForm from './ExpenseItemForm';
 import ExpenseItemViewModal from '../components/ExpenseItemViewModal';
-import { formatCurrency } from '../../../utils/currencyUtils';
 
 const MultiStepExpenseForm = ({ onSuccess }) => {
   const { user } = useAuthStore();
+  const { role } = useUserRole();
+  
+  // Use role from backend, fallback to user from store
+  const userRole = role || user?.role;
   const [currentStep, setCurrentStep] = useState(1);
   const [reportId, setReportId] = useState(null);
   const [formData, setFormData] = useState({
@@ -94,6 +98,8 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
         }
       } catch (error) {
         console.error('Failed to fetch faculty list:', error);
+        console.error('Error response:', error.response?.data);
+        setFacultyList([]);
       }
     };
 
@@ -229,12 +235,12 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <span className="ml-2 text-sm font-medium text-gray-600">Expense Items</span>
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Create {user?.role === 'Student' ? 'Expense Claim' : 'Expense Report'}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Create {userRole === 'Student' ? 'Expense Claim' : 'Expense Report'}</h2>
           <p className="text-gray-700">Step 1: Fill in the basic report information</p>
         </div>
         
         <form onSubmit={handleStep1Submit} className="space-y-6">
-          {user?.role === 'Student' ? (
+          {userRole === 'Student' ? (
             <div className="bg-white p-6 rounded border border-gray-300">
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Student Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -267,9 +273,16 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                    <option value="BioX Centre">BioX Centre</option>
                  </select>
                </div>
-                {user?.role === 'Student' && (
+                {userRole === 'Student' && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Select Faculty for Submission *</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Select Faculty for Submission
+                      {facultyList.length > 0 && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({facultyList.length} faculty members available)
+                        </span>
+                      )}
+                    </label>
                     <select
                       name="facultyId"
                       value={formData.facultyId}
@@ -277,7 +290,8 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                         const sel = facultyList.find(f => f._id === e.target.value);
                         setFormData({ ...formData, facultyId: e.target.value, facultyName: sel?.name || '' });
                       }}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border rounded text-sm"
+                      style={{ maxWidth: '100%' }}
                       required
                       disabled={facultyList.length === 0}
                     >
@@ -368,7 +382,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
             </div>
           </div>
 
-          {user?.role === 'Faculty' && (
+          {userRole === 'Faculty' && (
             <div className="bg-white p-6 rounded border border-gray-300">
               <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Financial Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -458,7 +472,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium">{item.category}</h4>
                       <span className="text-lg font-bold text-gray-800">
-                        {formatCurrency(item.amountInINR, 'INR')}
+                        ₹{item.amountInINR?.toFixed(2) || '0.00'}
                       </span>
                     </div>
                     <p className="text-gray-600 text-sm">{item.description}</p>
@@ -484,7 +498,7 @@ const MultiStepExpenseForm = ({ onSuccess }) => {
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total Amount:</span>
                 <span className="text-gray-800">
-                  {formatCurrency(formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0), 'INR')}
+                  ₹{formData.items.reduce((sum, item) => sum + (item.amountInINR || 0), 0).toFixed(2)}
                 </span>
               </div>
             </div>

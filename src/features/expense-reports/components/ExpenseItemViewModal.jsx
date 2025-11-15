@@ -1,5 +1,3 @@
-import { formatCurrency } from '../../../utils/currencyUtils';
-
 const ExpenseItemViewModal = ({ item, onClose }) => {
   if (!item) return null;
 
@@ -32,8 +30,8 @@ const ExpenseItemViewModal = ({ item, onClose }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <div className="text-gray-900 font-semibold break-words">
-                  {formatCurrency(item.amountInINR || item.amount, 'INR')}
+                <div className="text-gray-900 font-semibold">
+                  ₹{(item.amountInINR || item.amount)?.toFixed(2) || '0.00'}
                   {item.currency !== 'INR' && (
                     <span className="text-sm text-gray-500 ml-2">
                       ({item.currency} {item.amount})
